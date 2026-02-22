@@ -1649,6 +1649,9 @@ function getSB(){
 }
 
 let ol_mode = false;      // online mode active
+let ol_lastPhase = null;
+let ol_lastPressureOn = null;
+let ol_targetBubbleX = 250;  // target position from host
 let ol_role = null;       // 'host' or 'guest'
 let ol_code = null;       // 4-char room code
 let ol_myName = '';
@@ -1928,8 +1931,9 @@ async function ol_hostSync(){
 // ── GUEST: APPLY HOST STATE ────────────────────────────────────
 function ol_applyState(state){
   if(!ol_mode || !state) return;
-  // Sync bubble position and render immediately
+  // Sync bubble position
   if(state.bubbleX !== undefined){
+    ol_targetBubbleX = state.bubbleX;
     bubbleX = state.bubbleX;
     tiltLevel = state.tiltLevel || 0;
     tilt = tiltLevel * 5;
