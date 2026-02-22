@@ -1809,7 +1809,10 @@ function ol_processGuestEvent(ev){
   } else if(ev.type === 'answer'){
     if(phase === 'answering' && pressureOn === 2){
       const grid = document.getElementById('answers2');
-      submitAnswer(2, ev.chosen, currentQ.ans, grid);
+      submitAnswer(2, parseInt(ev.chosen), currentQ.ans, grid);
+      // Sync immediately after answer
+      setTimeout(ol_hostSync, 100);
+      setTimeout(ol_hostSync, 400);
     }
   }
 }
