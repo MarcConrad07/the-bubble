@@ -730,6 +730,9 @@ function showZone(p,mode){
 
 function buildAnswers(p,q){
   if(!q) return;
+  // Skip if answers already shown
+  const grid = document.getElementById('answers'+p);
+  if(grid && grid.querySelector('.ans-btn')) return;
   // If guest and this is their zone, use guest version
   if(ol_mode && ol_role==='guest' && p===2){ ol_guestBuildAnswers(q); return; }
   const grid=document.getElementById('answers'+p);grid.innerHTML='';
