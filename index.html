@@ -1950,30 +1950,33 @@ function ol_applyState(state){
     try{ setZoneQ(1, currentQ); setZoneQ(2, currentQ); }catch(e){}
   }
 
-  // Sync phase — always apply, not just on change
-  const prevPhase = phase;
-  phase = state.phase || phase;
-  pressureOn = state.pressureOn || 0;
+  // Only update UI when phase or pressureOn actually changes
+  const newPhase = state.phase || phase;
+  const newPressureOn = state.pressureOn !== undefined ? state.pressureOn : pressureOn;
+  phase = newPhase;
+  pressureOn = newPressureOn;
 
-  if(phase === 'buzzer'){
-    // Update round badge
-    const label = t('starter');
-    const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):'  · ◀'.repeat(Math.abs(tiltLevel)));
-    document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
-    showZone(1,'buzzer');
-    showZone(2,'buzzer');
-    stopFlow();
-  } else if(phase === 'answering' && currentQ){
-    // Update badge
-    const label2 = pressureOn===0 ? t('starter') : t('pressureQ');
-    const tiltInd2 = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
-    document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label2+tiltInd2;
-    showZone(pressureOn,'answering');
-    showZone(pressureOn===1?2:1,'waiting');
-    // Build answers for guest's zone if not already shown
-    if(pressureOn === 2){
-      const grid = document.getElementById('answers2');
-      if(!grid.querySelector('.ans-btn')){
+  const phaseChanged = (newPhase !== ol_lastPhase || newPressureOn !== ol_lastPressureOn);
+
+  if(phaseChanged){
+    ol_lastPhase = newPhase;
+    ol_lastPressureOn = newPressureOn;
+
+    if(phase === 'buzzer'){
+      const label = t('starter');
+      const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
+      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
+      showZone(1,'buzzer');
+      showZone(2,'buzzer');
+      stopFlow();
+    } else if(phase === 'answering' && currentQ){
+      playBuzzSound(); // play sound on guest too
+      const label2 = t('pressureQ');
+      const tiltInd2 = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
+      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label2+tiltInd2;
+      showZone(pressureOn,'answering');
+      showZone(pressureOn===1?2:1,'waiting');
+      if(pressureOn === 2){
         buildAnswers(2, currentQ);
       }
     }
