@@ -1928,8 +1928,6 @@ async function ol_hostSync(){
 // ── GUEST: APPLY HOST STATE ────────────────────────────────────
 function ol_applyState(state){
   if(!ol_mode || !state) return;
-  console.log('GUEST STATE:', state.phase, 'pressureOn:', state.pressureOn, 'q:', state.q ? state.q.q.substring(0,20) : 'null');
-
   // Sync bubble position and render immediately
   if(state.bubbleX !== undefined){
     bubbleX = state.bubbleX;
