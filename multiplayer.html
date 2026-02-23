@@ -730,9 +730,6 @@ function showZone(p,mode){
 
 function buildAnswers(p,q){
   if(!q) return;
-  // Skip if answers already shown
-  const existingGrid = document.getElementById('answers'+p);
-  if(existingGrid && existingGrid.querySelector('.ans-btn')) return;
   // If guest and this is their zone, use guest version
   if(ol_mode && ol_role==='guest' && p===2){ ol_guestBuildAnswers(q); return; }
   const grid=document.getElementById('answers'+p);grid.innerHTML='';
@@ -1973,7 +1970,8 @@ function ol_applyState(state){
     ol_lastPressureOn = newPressureOn;
 
     if(phase === 'buzzer'){
-      const label = t('starter');
+      ol_lastBuiltQ = null; // reset so next answering phase rebuilds buttons
+      const label = pressureOn === 0 ? t('starter') : t('pressureQ');
       const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
       document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
       showZone(1,'buzzer');
@@ -2050,8 +2048,12 @@ async function ol_guestPoll(){
   }catch(e){ console.log('poll err:', e); }
 }
 
+let ol_lastBuiltQ = null;
 function ol_guestBuildAnswers(q){
   const grid = document.getElementById('answers2');
+  // Only rebuild if question changed
+  if(ol_lastBuiltQ === q.q && grid.querySelector('.ans-btn:not(:disabled)')) return;
+  ol_lastBuiltQ = q.q;
   grid.innerHTML = '';
   q.opts.forEach((opt,i)=>{
     const btn = document.createElement('button');
