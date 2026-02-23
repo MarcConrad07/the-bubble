@@ -56,7 +56,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .q-category{font-size:.6rem;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
 .q-text{font-size:clamp(.82rem,2.4vw,1.1rem);font-weight:600;line-height:1.4;min-height:38px}
 .answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:480px;margin-top:8px}
-.ans-btn{background:var(--surface2);border:1px solid rgba(255,255,255,0.08);outline:none;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;user-select:none;border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
+.ans-btn{background:var(--surface2);border:1px solid rgba(255,255,255,0.08);outline:none;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;user-select:none;-webkit-focus-ring-color:transparent;border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
 .ans-btn:active{transform:scale(.97)}.ans-btn:focus{outline:none;border-color:rgba(255,255,255,0.08)}.ans-btn:focus-visible{outline:none;border-color:rgba(255,255,255,0.08)}
 .ans-btn:hover{border-color:var(--blue);background:rgba(0,212,255,.08)}
 .ans-btn.correct{border-color:#00ff88;background:rgba(0,255,136,.12);color:#00ff88}
@@ -728,19 +728,20 @@ function showZone(p,mode){
   const isPressure=pressureOn===p;
   document.getElementById('blabel'+p).classList.toggle('under-pressure',isPressure);
   if(mode==='buzzer'){buzz.style.display='block';buzz.disabled=false;qbox.style.display='block';}
-  else if(mode==='answering'){qbox.style.display='block';answers.style.display='grid';if(isPressure)badge.classList.add('show');if(!answers.querySelector('.ans-btn'))buildAnswers(p,currentQ);}
+  else if(mode==='answering'){qbox.style.display='block';answers.style.display='grid';if(isPressure)badge.classList.add('show');buildAnswers(p,currentQ);}
   else if(mode==='waiting'){qbox.style.display='block';wait.style.display='block';wait.textContent='...';}
 }
 
 function buildAnswers(p,q){
   if(!q) return;
+  const grid=document.getElementById('answers'+p);
+  grid.innerHTML=''; // always clear first
   // If guest and this is their zone, use guest version
   if(ol_mode && ol_role==='guest' && p===2){ ol_guestBuildAnswers(q); return; }
-  const grid=document.getElementById('answers'+p);grid.innerHTML='';
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
-    btn.onclick=()=>submitAnswer(p,i,q.ans,grid);
+    btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
     grid.appendChild(btn);
   });
 }
@@ -1938,13 +1939,13 @@ async function ol_hostSync(){
 // ── GUEST: APPLY HOST STATE ────────────────────────────────────
 function ol_applyState(state){
   if(!ol_mode || !state) return;
-  // Sync bubble position
+  // Sync bubble position - set target, let anim loop interpolate
   if(state.bubbleX !== undefined){
     ol_targetBubbleX = state.bubbleX;
-    bubbleX = state.bubbleX;
     tiltLevel = state.tiltLevel || 0;
     tilt = tiltLevel * 5;
-    renderBubble(bubbleX, tilt);
+    // Update tilt immediately but let anim loop move bubble
+    document.getElementById('bubble-svg').style.transform='rotate('+(-tilt)+'deg)';
   }
   tiltLevel = state.tiltLevel;
   tilt = tiltLevel * 5;
@@ -2013,17 +2014,22 @@ function ol_guestSetupButtons(){
     window._origPlayerBuzz(p);
   };
   // Poll every 300ms for game state
-  ol_syncInterval = setInterval(ol_guestPoll, 300);
+  ol_syncInterval = setInterval(ol_guestPoll, 150);
   // Smooth bubble animation loop for guest
   ol_guestAnimLoop();
 }
 
 function ol_guestAnimLoop(){
   if(!ol_mode || ol_role !== 'guest') return;
-  // Smoothly interpolate bubble toward target position
-  if(Math.abs(bubbleX - ol_targetBubbleX) > 0.3){
-    bubbleX += (ol_targetBubbleX - bubbleX) * 0.15;
-    renderBubble(bubbleX, tilt);
+  // Move bubble toward target position
+  const diff = ol_targetBubbleX - bubbleX;
+  if(Math.abs(diff) > 0.2){
+    bubbleX += diff * 0.12;
+    document.getElementById('the-bubble').setAttribute('cx', bubbleX);
+    document.getElementById('bshine').setAttribute('cx', bubbleX - 6);
+    // Color based on position
+    const inDanger = bubbleX < 115 || bubbleX > 385;
+    document.getElementById('the-bubble').setAttribute('fill', inDanger ? 'url(#dangerG)' : 'url(#bubG)');
   }
   requestAnimationFrame(ol_guestAnimLoop);
 }
@@ -2055,18 +2061,15 @@ async function ol_guestPoll(){
   }catch(e){ console.log('poll err:', e); }
 }
 
-let ol_lastBuiltQ = null;
 function ol_guestBuildAnswers(q){
   const grid = document.getElementById('answers2');
-  // Only rebuild if question changed
-  if(ol_lastBuiltQ === q.q && grid.querySelector('.ans-btn:not(:disabled)')) return;
-  ol_lastBuiltQ = q.q;
   grid.innerHTML = '';
   q.opts.forEach((opt,i)=>{
     const btn = document.createElement('button');
     btn.className = 'ans-btn';
     btn.textContent = ['A','B','C','D'][i] + '. ' + opt;
     btn.onclick = () => {
+      btn.blur();
       grid.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
       ol_guestSendEvent({type:'answer', chosen:i});
       // Show local visual feedback immediately
