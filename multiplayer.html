@@ -366,7 +366,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 <div class="screen" id="game">
   <button id="music-toggle" onclick="toggleMusic()" style="position:absolute;top:8px;right:10px;z-index:10;background:rgba(0,180,255,0.15);border:1px solid rgba(0,212,255,0.4);color:#fff;border-radius:20px;padding:5px 14px;font-size:1rem;cursor:pointer;">🔊</button>
-  <div class="zone p2" id="zone-p2">
+  <div id="ol-debug" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;font-family:monospace;padding:4px 8px;"></div>
+<div class="zone p2" id="zone-p2">
     <div class="player-header">
       <div class="player-name" id="gname2" style="color:#ff6b6b">PLAYER 2</div>
       <div class="score-badge" id="score2">0</div>
@@ -1832,6 +1833,9 @@ async function ol_guestPoll(){
 
 function ol_applyState(state){
   if(!state) return;
+  // Debug display
+  const dbg=document.getElementById('ol-debug');
+  if(dbg){ dbg.style.display='block'; dbg.textContent='role:'+ol_role+' phase:'+state.phase+' pressure:'+state.pressureOn+' bx:'+Math.round(state.bubbleX)+'→'+Math.round(ol_bubbleTarget)+' q:'+(state.q?state.q.q.substring(0,20):'null'); }
   // Bubble target
   if(state.bubbleX!==undefined){
     ol_bubbleTarget=state.bubbleX;
