@@ -43,12 +43,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .q-category{font-size:.6rem;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
 .q-text{font-size:clamp(.82rem,2.4vw,1.1rem);font-weight:600;line-height:1.4;min-height:38px}
 .answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:480px;margin-top:8px}
-.ans-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
+.ans-btn{background:var(--surface2);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3;outline:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.ans-btn:focus{border-color:var(--border);background:var(--surface2)}
 .ans-btn:active{transform:scale(.97)}
-.ans-btn:hover{border-color:var(--blue);background:rgba(0,212,255,.08)}
 .ans-btn.correct{border-color:#00ff88;background:rgba(0,255,136,.12);color:#00ff88}
 .ans-btn.wrong{border-color:var(--red);background:rgba(255,59,59,.12);color:var(--red)}
-.ans-btn:disabled{cursor:default}
 .buzzer-btn{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,5vw,2rem);letter-spacing:.15em;padding:13px 36px;border:none;border-radius:12px;cursor:pointer;transition:all .15s;width:100%;max-width:300px}
 .buzzer-btn:active{transform:scale(.95)}
 .buzzer-btn.p1-btn{background:linear-gradient(135deg,var(--blue),#0055bb);color:#fff;box-shadow:0 0 25px rgba(0,180,255,.35)}
@@ -332,7 +331,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
     </div>
   </div>
-  <button id="btn-sound" onclick="testSound()" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
+  <button id="btn-sound" onclick="testSound(this)" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
     🔊 Sound aktivieren &amp; testen
   </button>
   <div class="lang-row">
@@ -725,7 +724,7 @@ function showZone(p,mode){
 function buildAnswers(p,q){
   const grid=document.getElementById('answers'+p);grid.innerHTML='';
   q.opts.forEach((opt,i)=>{
-    const btn=document.createElement('button');btn.className='ans-btn';
+    const btn=document.createElement('div');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
     btn.onclick=()=>submitAnswer(p,i,q.ans,grid);
     grid.appendChild(btn);
@@ -748,9 +747,10 @@ function playerBuzz(p){
 }
 
 function submitAnswer(p,chosen,correct,grid){
-  grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
+  const btns=grid.querySelectorAll('.ans-btn');
+  btns.forEach((b,i)=>{b.style.pointerEvents='none';if(i===correct)b.classList.add('correct');});
   const ok=chosen===correct;
-  if(!ok)grid.querySelectorAll('.ans-btn')[chosen].classList.add('wrong');
+  if(!ok)btns[chosen].classList.add('wrong');
   if(ok) playCorrectSound(); else playWrongSound();
   // Log for CrossBot
   gameLog.push({
@@ -884,7 +884,13 @@ function pickQ(){
   const avail=pool.filter((_,i)=>!usedQs.includes(i));
   if(!avail.length){usedQs=[];return pickQ();}
   const pick=Math.floor(Math.random()*avail.length);
-  const idx=pool.indexOf(avail[pick]);usedQs.push(idx);return pool[idx];
+  const idx=pool.indexOf(avail[pick]);usedQs.push(idx);
+  const orig=pool[idx];
+  // Shuffle options
+  const indices=[0,1,2,3];
+  for(let i=indices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[indices[i],indices[j]]=[indices[j],indices[i]];}
+  const shuffled={cat:orig.cat,q:orig.q,opts:indices.map(i=>orig.opts[i]),ans:indices.indexOf(orig.ans)};
+  return shuffled;
 }
 
 function showFeedback(ok){
@@ -1577,7 +1583,7 @@ function playBurstSound() {
 }
 
 
-function testSound(){
+function testSound(btn){
   try {
     if(!audioCtx){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1596,17 +1602,9 @@ function testSound(){
       musicEnabled = true;
       document.getElementById('music-toggle').textContent = '🔊';
       // Visual feedback
-      const btn = event.target.closest('button');
       btn.textContent = t('soundOk');
       btn.style.borderColor = '#00ff88';
       btn.style.color = '#00ff88';
-      // Pre-load the music track
-      if(!musicAudio){
-        musicAudio = new Audio(MUSIC_URL);
-        musicAudio.loop = true;
-        musicAudio.volume = 0.75;
-
-      }
     });
   } catch(e) {
     alert('Sound konnte nicht aktiviert werden: ' + e.message);
