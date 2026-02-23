@@ -695,6 +695,10 @@ function startGame(){
 }
 
 function startBuzzerPhase(){
+  // Clear all answer grids for new question
+  document.getElementById('answers1').innerHTML = '';
+  document.getElementById('answers2').innerHTML = '';
+  if(typeof ol_lastBuiltQ !== 'undefined') ol_lastBuiltQ = null;
   phase= pressureOn===0 ? 'buzzer' : 'answering';
   const label=pressureOn===0?t('starter'):t('pressureQ');
   const tiltIndicator = tiltLevel===0 ? '' : (tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)) : ' · ◀'.repeat(Math.abs(tiltLevel)));
@@ -1970,7 +1974,10 @@ function ol_applyState(state){
     ol_lastPressureOn = newPressureOn;
 
     if(phase === 'buzzer'){
-      ol_lastBuiltQ = null; // reset so next answering phase rebuilds buttons
+      // Clear answer grids for new question
+      document.getElementById('answers1').innerHTML = '';
+      document.getElementById('answers2').innerHTML = '';
+      ol_lastBuiltQ = null;
       const label = pressureOn === 0 ? t('starter') : t('pressureQ');
       const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
       document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
