@@ -31,19 +31,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #game{flex-direction:column}
 .zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;position:relative;transition:background .3s}
 .zone.p2{transform:rotate(180deg)}
-/* ── GUEST ONLINE VIEW ── */
-#game.guest-view .zone.p2 {
-  transform: none;
-  order: 2;
-}
-#game.guest-view .zone.p1 {
-  transform: rotate(180deg);
-  order: 0;
-}
-#game.guest-view .middle {
-  order: 1;
-}
-
 @keyframes dangerFlash{0%,100%{background:transparent}50%{background:rgba(255,59,59,.15)}}
 @keyframes winFlash{0%,100%{background:transparent}50%{background:rgba(255,215,0,.15)}}
 .zone.winner-flash{animation:winFlash .6s ease}
@@ -323,7 +310,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 @media(max-height:700px){.q-box{padding:8px 12px}.answers-grid{gap:5px}.ans-btn{padding:7px 5px}.buzzer-btn{padding:10px 28px;font-size:1.4rem}.player-name{font-size:1.1rem}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -346,14 +332,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
     </div>
   </div>
-  <button onclick="ol_open()"
-    style="font-family:'DM Sans',sans-serif;font-size:.9rem;
-    background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);
-    color:#ffb400;padding:10px 28px;border-radius:20px;cursor:pointer;
-    width:100%;max-width:400px;">
-    🌐 Online gegen Freund spielen
-  </button>
-  <button onclick="testSound()" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
+  <button id="btn-sound" onclick="testSound()" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
     🔊 Sound aktivieren &amp; testen
   </button>
   <div class="lang-row">
@@ -361,7 +340,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <button class="lang-btn" onclick="setLang('de')">DE</button>
   </div>
   <button class="btn-start" onclick="startGame()" id="btn-start">LET'S BUBBLE!</button>
-  <button onclick="openLeaderboard()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;background:none;border:none;color:var(--muted);cursor:pointer;letter-spacing:.05em;padding:4px 0;">🏆 Hall of Fame</button>
+  <button id="btn-hof" onclick="openLeaderboard()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;background:none;border:none;color:var(--muted);cursor:pointer;letter-spacing:.05em;padding:4px 0;">🏆 Hall of Fame</button>
 </div>
 
 <div class="screen" id="game">
@@ -639,8 +618,8 @@ const QUESTIONS={en:[
 {cat:"Technologie",q:"Älteste noch genutzte Programmiersprache?",opts:["FORTRAN","COBOL","BASIC","Pascal"],ans:0}
 ]};
 
-const T={en:{setup:'Players',p1:'Player 1 (Bottom)',p2:'Player 2 (Top)',start:"LET'S BUBBLE!",waitingFor:'Waiting for',toAnswer:'to answer...',pressure:'UNDER PRESSURE',starter:'STARTER QUESTION',pressureQ:'UNDER PRESSURE',correct:'CORRECT!',wrong:'WRONG!',winner:'WINNER!',bubble:'The bubble reached the end!',again:'Play Again',home:'New Game'},
-de:{setup:'Spieler',p1:'Spieler 1 (Unten)',p2:'Spieler 2 (Oben)',start:'LASS ES BUBBELN!',waitingFor:'Warte auf',toAnswer:'zum Antworten...',pressure:'UNTER DRUCK',starter:'STARTFRAGE',pressureQ:'UNTER DRUCK',correct:'RICHTIG!',wrong:'FALSCH!',winner:'GEWONNEN!',bubble:'Die Blase hat das Ende erreicht!',again:'Nochmal spielen',home:'Neues Spiel'}};
+const T={en:{setup:'Players',p1:'Player 1 (Bottom)',p2:'Player 2 (Top)',start:"LET'S BUBBLE!",waitingFor:'Waiting for',toAnswer:'to answer...',pressure:'UNDER PRESSURE',starter:'STARTER QUESTION',pressureQ:'UNDER PRESSURE',correct:'CORRECT!',wrong:'WRONG!',winner:'WINNER!',bubble:'The bubble reached the end!',again:'Play Again',home:'New Game',bot:'BubbleBot Analysis',placeholder:'Enter name...',answering:'answering...',winsInARow:'wins in a row!',win:'WIN',wins:'WINS',inARow:'IN A ROW',newRecord:'🎉 NEW RECORD!',milestone:'🏅 MILESTONE!',onFire:'is on FIRE! Can they keep going?',noRecords:'No records yet.<br>Play your first game to get on the board!',bestStreak:'best streak',noQuestions:'No questions logged.',allCorrect:'🎯 Both players answered every question correctly!',answered:'Answered',correctLabel:'Correct',round:'Round',hallOfFame:'🏆 HALL OF FAME',back:'← BACK',continueBtn:'CONTINUE →',postGame:'POST-GAME ANALYSIS',analyzing:'Analyzing your game...',playAgainBot:'PLAY AGAIN →',soundBtn:'🔊 Activate & test sound',accuracy:'accuracy',totalPressure:'Total pressure rounds',maxDanger:'Max bubble danger',soundOk:'✓ Sound active!',cbVerdict:'⚡ Verdict',cbStats:'📊 Stats',cbQuestions:'🔍 Question Breakdown'},
+de:{setup:'Spieler',p1:'Spieler 1 (Unten)',p2:'Spieler 2 (Oben)',start:'LASS ES BUBBELN!',waitingFor:'Warte auf',toAnswer:'zum Antworten...',pressure:'UNTER DRUCK',starter:'STARTFRAGE',pressureQ:'UNTER DRUCK',correct:'RICHTIG!',wrong:'FALSCH!',winner:'GEWONNEN!',bubble:'Die Blase hat das Ende erreicht!',again:'Nochmal spielen',home:'Neues Spiel',bot:'BubbleBot Analyse',placeholder:'Name eingeben...',answering:'antwortet...',winsInARow:'Siege in Folge!',win:'SIEG',wins:'SIEGE',inARow:'IN FOLGE',newRecord:'🎉 NEUER REKORD!',milestone:'🏅 MEILENSTEIN!',onFire:'ist on FIRE! Geht da noch mehr?',noRecords:'Noch keine Einträge.<br>Spielt euer erstes Spiel!',bestStreak:'Beste Serie',noQuestions:'Keine Fragen protokolliert.',allCorrect:'🎯 Beide Spieler haben alles richtig beantwortet!',answered:'Antwort',correctLabel:'Richtig',round:'Runde',hallOfFame:'🏆 HALL OF FAME',back:'← ZURÜCK',continueBtn:'WEITER →',postGame:'SPIELANALYSE',analyzing:'Spiel wird analysiert...',playAgainBot:'NOCHMAL SPIELEN →',soundBtn:'🔊 Sound aktivieren & testen',accuracy:'Genauigkeit',totalPressure:'Druckrunden gesamt',maxDanger:'Max. Blasen-Gefahr',soundOk:'✓ Sound aktiv!',cbVerdict:'⚡ Urteil',cbStats:'📊 Statistiken',cbQuestions:'🔍 Fragenübersicht'}};
 
 let lang='en',p1Name='Player 1',p2Name='Player 2';
 let bubbleX=250,tilt=0,flowSpeed=0,lastTs=null;
@@ -656,7 +635,8 @@ let gameLog=[]; // tracks every answer event for CrossBot
 // Each wrong answer: ±1 tilt step. Each correct: ∓1 step back.
 // Win condition: |tiltLevel| reaches 5
 const MAX_TILT = 5;
-const SPEED_PER_LEVEL = 1.5; // px/sec per tilt level — level 1=3px/s (~130s), level 5=15px/s (~26s)
+const BASE_SPEED = 2;        // px/sec at tilt level 1
+const SPEED_EXPONENT = 1.8;  // exponential multiplier per level
 const TILT_DEG_PER_LEVEL = 5; // visual degrees per level
 
 let tiltLevel = 0; // -5..+5
@@ -673,6 +653,20 @@ function setLang(l){
   document.getElementById('btn-start').textContent=t('start');
   document.getElementById('btn-again').textContent='🔄 '+t('again');
   document.getElementById('btn-home').textContent='← '+t('home');
+  document.getElementById('btn-bot').textContent='🤖 '+t('bot');
+  document.getElementById('name1').placeholder=t('placeholder');
+  document.getElementById('name2').placeholder=t('placeholder');
+  document.getElementById('lb-title').textContent=t('hallOfFame');
+  document.getElementById('lb-back').textContent=t('back');
+  document.getElementById('btn-continue').textContent=t('continueBtn');
+  document.getElementById('cb-subtitle').textContent=t('postGame');
+  document.getElementById('cb-analyzing').textContent=t('analyzing');
+  document.getElementById('cb-close').textContent=t('playAgainBot');
+  document.getElementById('btn-sound').textContent=t('soundBtn');
+  document.getElementById('btn-hof').textContent=t('hallOfFame');
+  document.getElementById('cb-title-verdict').textContent=t('cbVerdict');
+  document.getElementById('cb-title-stats').textContent=t('cbStats');
+  document.getElementById('cb-title-questions').textContent=t('cbQuestions');
 }
 
 function startGame(){
@@ -712,7 +706,7 @@ function startBuzzerPhase(){
   }
 }
 
-function setZoneQ(p,q){if(!q)return;document.getElementById('qcat'+p).textContent=q.cat||'';document.getElementById('qtext'+p).textContent=q.q||'';}
+function setZoneQ(p,q){document.getElementById('qcat'+p).textContent=q.cat;document.getElementById('qtext'+p).textContent=q.q;}
 
 function showZone(p,mode){
   const buzz=document.getElementById('buzz'+p);
@@ -729,12 +723,6 @@ function showZone(p,mode){
 }
 
 function buildAnswers(p,q){
-  if(!q) return;
-  // Skip if answers already shown
-  const grid = document.getElementById('answers'+p);
-  if(grid && grid.querySelector('.ans-btn')) return;
-  // If guest and this is their zone, use guest version
-  if(ol_mode && ol_role==='guest' && p===2){ ol_guestBuildAnswers(q); return; }
   const grid=document.getElementById('answers'+p);grid.innerHTML='';
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
@@ -745,29 +733,18 @@ function buildAnswers(p,q){
 }
 
 function playerBuzz(p){
-  // Online guest: send buzz event to host instead of running locally
-  if(ol_mode && ol_role === 'guest'){
-    if(p === 2) ol_guestSendEvent({type:'buzz'});
-    return;
-  }
   if(phase!=='buzzer')return;
   phase='answering';
-  pressureOn = p; // explicitly set pressureOn
   const other=p===1?2:1;
   document.getElementById('buzz'+other).disabled=true;
   document.getElementById('buzz'+other).style.display='none';
   document.getElementById('buzz'+p).style.display='none';
   document.getElementById('qbox'+other).style.display='block';
   document.getElementById('wait'+other).style.display='block';
-  document.getElementById('wait'+other).textContent='⏳ '+(p===1?p1Name:p2Name)+' answering...';
+  document.getElementById('wait'+other).textContent='⏳ '+(p===1?p1Name:p2Name)+' '+t('answering');
   playBuzzSound();
+  // Bubble stays still while player thinks and answers
   showZone(p,'answering');
-  // Online: sync immediately with correct pressureOn
-  if(ol_mode && ol_role === 'host'){
-    ol_hostSync();
-    setTimeout(ol_hostSync, 100);
-    setTimeout(ol_hostSync, 300);
-  }
 }
 
 function submitAnswer(p,chosen,correct,grid){
@@ -845,8 +822,8 @@ function applyTiltLevel() {
   // tiltLevel < 0: P1 in danger → bubble flows left (negative direction)
   const sign = Math.sign(tiltLevel);
   const intensity = Math.abs(tiltLevel);
-  flowSpeed = sign * intensity * SPEED_PER_LEVEL;
-  tilt = sign * intensity * TILT_DEG_PER_LEVEL;
+  flowSpeed = sign * BASE_SPEED * Math.pow(SPEED_EXPONENT, intensity - 1);
+  tilt = -sign * intensity * TILT_DEG_PER_LEVEL;
   renderBubble(bubbleX, tilt);
 }
 
@@ -898,7 +875,7 @@ function flowLoop(ts){
 function renderBubble(x,deg){
   document.getElementById('the-bubble').setAttribute('cx',x);
   document.getElementById('bshine').setAttribute('cx',x-6);
-  document.getElementById('bubble-svg').style.transform='rotate('+(-deg)+'deg)';
+  document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
   document.getElementById('the-bubble').setAttribute('fill',(x<115||x>385)?'url(#dangerG)':'url(#bubG)');
 }
 
@@ -942,7 +919,7 @@ function endGame(winnerP){
   document.getElementById('res-winner').textContent = name;
   document.getElementById('res-sub').textContent = t('bubble');
   document.getElementById('res-scores').textContent =
-    (wins > 1 ? '🔥 '+wins+' wins in a row!' : '') +
+    (wins > 1 ? '🔥 '+wins+' '+t('winsInARow') : '') +
     (tierStr ? '  ' + tierStr : '');
   document.getElementById('result-overlay').classList.add('show');
   document.getElementById('zone-p'+winnerP).classList.add('winner-flash');
@@ -1225,17 +1202,17 @@ function showStreakModal(name, wins, tier, isNewRecord){
   document.getElementById('sm-icon').textContent = tier.icon;
   document.getElementById('sm-tier').textContent = tier.name;
   document.getElementById('sm-tier').style.color = tier.color;
-  document.getElementById('sm-wins').textContent = wins + (wins===1?' WIN':' WINS') + ' IN A ROW';
+  document.getElementById('sm-wins').textContent = wins + (wins===1?' '+t('win'):' '+t('wins')) + ' ' + t('inARow');
   
   const badge = document.getElementById('sm-new-badge');
-  badge.textContent = isNewRecord ? '🎉 NEW RECORD!' : '🏅 MILESTONE!';
+  badge.textContent = isNewRecord ? t('newRecord') : t('milestone');
   badge.style.background = tier.color.startsWith('var') ? 'rgba(255,215,0,0.15)' : 'rgba(168,237,255,0.1)';
   badge.style.color = tier.color;
   badge.style.border = '1px solid ' + tier.border;
   
   document.getElementById('streak-card').style.borderColor = tier.border;
   document.getElementById('streak-card').style.boxShadow = '0 0 40px ' + tier.border;
-  document.getElementById('sm-msg').textContent = name + ' is on FIRE! Can they keep going?';
+  document.getElementById('sm-msg').textContent = name + ' ' + t('onFire');
   modal.classList.add('show');
 }
 
@@ -1260,7 +1237,7 @@ function renderLeaderboard(){
   const container = document.getElementById('lb-content');
   
   if(lb.length === 0){
-    container.innerHTML = '<div class="empty-lb">No records yet.<br>Play your first game to get on the board!</div>';
+    container.innerHTML = '<div class="empty-lb">'+t('noRecords')+'</div>';
     return;
   }
 
@@ -1297,7 +1274,7 @@ function renderLeaderboard(){
         <div class="lb-name">${escapeHtml(entry.name)}</div>
         <div style="text-align:right">
           <div class="lb-wins">${entry.best}</div>
-          <div class="lb-wins-label">best streak</div>
+          <div class="lb-wins-label">${t('bestStreak')}</div>
         </div>
       </div>`;
       globalRank++;
@@ -1382,30 +1359,30 @@ function renderCrossbotStats(winner, loser) {
   document.getElementById('cb-stats').innerHTML = `
     <div class="cb-stat">
       <div class="cb-stat-val" style="color:var(--blue)">${pct(p1Correct,p1Total)}</div>
-      <div class="cb-stat-lbl">${p1Name} accuracy</div>
+      <div class="cb-stat-lbl">${p1Name} ${t('accuracy')}</div>
     </div>
     <div class="cb-stat">
       <div class="cb-stat-val" style="color:#ff6b6b">${pct(p2Correct,p2Total)}</div>
-      <div class="cb-stat-lbl">${p2Name} accuracy</div>
+      <div class="cb-stat-lbl">${p2Name} ${t('accuracy')}</div>
     </div>
     <div class="cb-stat">
       <div class="cb-stat-val">${p1Pressure+p2Pressure}</div>
-      <div class="cb-stat-lbl">Total pressure rounds</div>
+      <div class="cb-stat-lbl">${t('totalPressure')}</div>
     </div>
     <div class="cb-stat">
       <div class="cb-stat-val">${bubblePeak}px</div>
-      <div class="cb-stat-lbl">Max bubble danger</div>
+      <div class="cb-stat-lbl">${t('maxDanger')}</div>
     </div>
   `;
 }
 
 function renderCrossbotQuestions() {
   const container = document.getElementById('cb-questions');
-  if(!gameLog.length){ container.innerHTML='<div style="color:var(--muted);font-size:.85rem">No questions logged.</div>'; return; }
+  if(!gameLog.length){ container.innerHTML='<div style="color:var(--muted);font-size:.85rem">'+t('noQuestions')+'</div>'; return; }
 
   const wrong = gameLog.filter(e=>!e.ok);
   if(!wrong.length){
-    container.innerHTML='<div style="color:#00ff88;font-size:.85rem">🎯 Both players answered every question correctly!</div>';
+    container.innerHTML='<div style="color:#00ff88;font-size:.85rem">'+t('allCorrect')+'</div>';
     return;
   }
 
@@ -1415,9 +1392,9 @@ function renderCrossbotQuestions() {
       <div class="cb-q-body">
         <div class="cb-q-cat">${e.cat}</div>
         <div class="cb-q-text">${e.q}</div>
-        <div class="cb-q-answer wrong">Answered: ${e.chosen}</div>
-        <div class="cb-q-answer correct">Correct: ${e.correct}</div>
-        <div class="cb-q-player">${e.name} · Round ${e.round}</div>
+        <div class="cb-q-answer wrong">${t('answered')}: ${e.chosen}</div>
+        <div class="cb-q-answer correct">${t('correctLabel')}: ${e.correct}</div>
+        <div class="cb-q-player">${e.name} · ${t('round')} ${e.round}</div>
       </div>
     </div>
   `).join('');
@@ -1462,7 +1439,7 @@ Write a SHORT post-game verdict (max 4 sentences). Be direct, slightly cheeky, m
     const text = data.content?.map(b=>b.text||'').join('') || 'Analysis unavailable.';
     verdictEl.innerHTML = `<div class="cb-verdict">${text}</div>`;
   } catch(err) {
-    verdictEl.innerHTML = `<div class="cb-verdict" style="color:var(--muted)">BubbleBot is offline. But ${winner} clearly won – that's all that matters.</div>`;
+    verdictEl.innerHTML = `<div class="cb-verdict" style="color:var(--muted)">${lang==='de' ? 'BubbleBot ist offline. Aber '+winner+' hat klar gewonnen – das zählt!' : 'BubbleBot is offline. But '+winner+' clearly won – that\'s all that matters.'}</div>`;
   }
 }
 
@@ -1620,7 +1597,7 @@ function testSound(){
       document.getElementById('music-toggle').textContent = '🔊';
       // Visual feedback
       const btn = event.target.closest('button');
-      btn.textContent = '✓ Sound aktiv!';
+      btn.textContent = t('soundOk');
       btn.style.borderColor = '#00ff88';
       btn.style.color = '#00ff88';
       // Pre-load the music track
@@ -1636,467 +1613,13 @@ function testSound(){
   }
 }
 
-
-// ═══════════════════════════════════════════════════════════════
-// ONLINE MULTIPLAYER — HOST/GUEST ARCHITECTURE
-// HOST controls all game logic and syncs to Supabase
-// GUEST sends input events and mirrors HOST state
-// ═══════════════════════════════════════════════════════════════
-
-const SB_URL = 'https://dkolonjnectukbydsexo.supabase.co';
-const SB_KEY = 'sb_publishable_LONeP9JuH5aguB9s2dpJgA_6v53ty8_';
-let _sb = null;
-function getSB(){
-  if(!_sb) _sb = supabase.createClient(SB_URL, SB_KEY);
-  return _sb;
-}
-
-let ol_mode = false;      // online mode active
-let ol_lastPhase = null;
-let ol_lastPressureOn = null;
-let ol_targetBubbleX = 250;  // target position from host
-let ol_role = null;       // 'host' or 'guest'
-let ol_code = null;       // 4-char room code
-let ol_myName = '';
-let ol_oppName = '';
-let ol_channel = null;    // realtime channel
-let ol_syncInterval = null;
-let ol_pendingEvent = null; // guest queues events here
-
-// ── SCREEN NAVIGATION ──────────────────────────────────────────
-function ol_open(){
-  _showScreen('lobby');
-  document.getElementById('lobby-form').style.display = 'flex';
-  document.getElementById('lobby-waiting').style.display = 'none';
-}
-function ol_back(){ _showScreen('setup'); }
-function _showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// ── GENERATE CODE ──────────────────────────────────────────────
-function ol_genCode(){
-  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
-}
-
-// ── CREATE GAME ────────────────────────────────────────────────
-async function ol_create(){
-  const name = document.getElementById('ol-name').value.trim();
-  if(!name){ alert('Bitte gib deinen Namen ein!'); return; }
-  ol_myName = name;
-  ol_role = 'host';
-  ol_code = ol_genCode();
-
-  document.getElementById('ol-display-code').textContent = ol_code;
-  document.getElementById('lobby-form').style.display = 'none';
-  document.getElementById('lobby-waiting').style.display = 'flex';
-  document.getElementById('ol-status').textContent = '⏳ Warte auf Gegner...';
-
-  try{
-    // Delete any old rooms with same code
-    await getSB().from('bubble_games').delete().eq('code', ol_code);
-    
-    // Create fresh room
-    const {error} = await getSB().from('bubble_games').insert({
-      code: ol_code,
-      host_name: ol_myName,
-      guest_name: null,
-      status: 'waiting',
-      game_state: null,
-      guest_event: null
-    });
-    if(error) throw error;
-
-    // Watch for guest joining
-    ol_channel = getSB()
-      .channel('room-' + ol_code)
-      .on('postgres_changes',
-        {event:'UPDATE', schema:'public', table:'bubble_games', filter:'code=eq.'+ol_code},
-        (payload) => ol_hostHandleUpdate(payload.new)
-      )
-      .subscribe();
-
-  }catch(e){
-    alert('Fehler: ' + e.message);
-    _showScreen('lobby');
-  }
-}
-
-// ── JOIN GAME ──────────────────────────────────────────────────
-async function ol_join(){
-  const name = document.getElementById('ol-name').value.trim();
-  const code = document.getElementById('ol-code').value.trim().toUpperCase();
-  if(!name){ alert('Bitte gib deinen Namen ein!'); return; }
-  if(code.length !== 4){ alert('Bitte gib den 4-stelligen Code ein!'); return; }
-
-  ol_myName = name;
-  ol_role = 'guest';
-  ol_code = code;
-
-  document.getElementById('ol-status') && (document.getElementById('ol-status').textContent = 'Verbinde...');
-
-  try{
-    // Find room
-    const {data, error} = await getSB()
-      .from('bubble_games')
-      .select('*')
-      .eq('code', code)
-      .eq('status', 'waiting')
-      .single();
-
-    if(error || !data) throw new Error('Spiel nicht gefunden! Prüfe den Code.');
-    if(!data.host_name) throw new Error('Spiel ungültig. Bitte neuen Code anfordern.');
-
-    ol_oppName = data.host_name || 'Gegner';
-
-    // Join room
-    const {error:e2} = await getSB()
-      .from('bubble_games')
-      .update({guest_name: ol_myName, status: 'starting'})
-      .eq('code', code);
-    if(e2) throw e2;
-
-    // Subscribe to game state updates from host
-    ol_channel = getSB()
-      .channel('room-' + ol_code)
-      .on('postgres_changes',
-        {event:'UPDATE', schema:'public', table:'bubble_games', filter:'code=eq.'+ol_code},
-        (payload) => ol_guestHandleUpdate(payload.new)
-      )
-      .subscribe();
-
-    // Show waiting screen briefly
-    _showScreen('lobby');
-    document.getElementById('lobby-form').style.display = 'none';
-    document.getElementById('lobby-waiting').style.display = 'flex';
-    document.getElementById('ol-display-code').textContent = code;
-    document.getElementById('ol-status').textContent = '✓ Verbunden! Warte auf Start...';
-
-  }catch(e){
-    alert('Fehler: ' + e.message);
-  }
-}
-
-// ── HOST: HANDLE DB UPDATE ─────────────────────────────────────
-function ol_hostHandleUpdate(row){
-  if(!row) return;
-  if(row.status === 'starting' && row.guest_name && !ol_mode){
-    ol_oppName = row.guest_name || 'Gegner';
-    document.getElementById('ol-status').textContent = '✓ ' + ol_oppName + ' ist da! Starte...';
-    setTimeout(() => ol_startGame(), 800);
-  }
-
-  // Host processes guest events
-  if(row.guest_event){
-    const ev = JSON.parse(row.guest_event);
-    if(ev && ev.id !== ol_lastGuestEvent){
-      ol_lastGuestEvent = ev.id;
-      ol_processGuestEvent(ev);
-    }
-  }
-}
-
-let ol_lastGuestEvent = null;
-
-function ol_processGuestEvent(ev){
-  // Guest is always player 2 (host=P1, guest=P2)
-  if(ev.type === 'buzz'){
-    if(phase === 'buzzer'){
-      playerBuzz(2);
-      // Sync immediately so guest gets phase+pressureOn right away
-      setTimeout(ol_hostSync, 50);
-      setTimeout(ol_hostSync, 150);
-    }
-  } else if(ev.type === 'answer'){
-    if(phase === 'answering' && pressureOn === 2){
-      const grid = document.getElementById('answers2');
-      submitAnswer(2, parseInt(ev.chosen), currentQ.ans, grid);
-      // Sync immediately after answer
-      setTimeout(ol_hostSync, 100);
-      setTimeout(ol_hostSync, 400);
-    }
-  }
-}
-
-// ── GUEST: HANDLE DB UPDATE ────────────────────────────────────
-function ol_guestHandleUpdate(row){
-  if(!row) return;
-  // Start game when host begins playing
-  if((row.status === 'playing' || row.status === 'starting') && !ol_mode){
-    ol_startGame();
-    return;
-  }
-  if(row.game_state && ol_mode){
-    try{
-      const state = JSON.parse(row.game_state);
-      ol_applyState(state);
-    }catch(e){}
-  }
-}
-
-// ── START GAME ────────────────────────────────────────────────
-function ol_startGame(){
-  ol_mode = true;
-
-  // Host = P1, Guest = P2
-  if(ol_role === 'host'){
-    p1Name = ol_myName;
-    p2Name = ol_oppName;
-  } else {
-    p1Name = ol_oppName;
-    p2Name = ol_myName;
-  }
-
-  document.getElementById('gname1').textContent = p1Name;
-  document.getElementById('gname2').textContent = p2Name;
-  document.getElementById('blabel1').textContent = p1Name;
-  document.getElementById('blabel2').textContent = p2Name;
-
-  bubbleX=250; flowSpeed=0; tilt=0; tiltLevel=0;
-  if(animId) cancelAnimationFrame(animId); animId=null;
-  phase='buzzer'; pressureOn=0; usedQs=[]; round=1; gameLog=[];
-
-  _showScreen('game');
-  // Apply guest view — flip so guest sees their zone at bottom
-  if(ol_role === 'guest'){
-    document.getElementById('game').classList.add('guest-view');
-  } else {
-    document.getElementById('game').classList.remove('guest-view');
-  }
-  initAudio();
-
-  if(ol_role === 'host'){
-    // Host picks question and starts
-    currentQ = pickQ();
-    renderBubble(250, 0);
-    startBuzzerPhase();
-    // Sync multiple times at start to ensure guest receives first state
-    ol_hostSync();
-    setTimeout(ol_hostSync, 300);
-    setTimeout(ol_hostSync, 700);
-    // Then keep syncing every 150ms
-    ol_syncInterval = setInterval(ol_hostSync, 150);
-  } else {
-    // Guest: intercept button presses, poll for host state
-    ol_guestSetupButtons();
-    renderBubble(250, 0);
-    document.getElementById('round-badge').textContent = 'WARTE AUF HOST...';
-    // Poll immediately multiple times to catch first state fast
-    setTimeout(ol_guestPoll, 300);
-    setTimeout(ol_guestPoll, 700);
-    setTimeout(ol_guestPoll, 1200);
-    setTimeout(ol_guestPoll, 2000);
-  }
-}
-
-// ── HOST SYNC ─────────────────────────────────────────────────
-async function ol_hostSync(){
-  if(!ol_code) return;
-  try{
-    // Also check for guest events (fallback if realtime missed it)
-    const {data: roomData} = await getSB()
-      .from('bubble_games')
-      .select('guest_event')
-      .eq('code', ol_code)
-      .single();
-    if(roomData && roomData.guest_event){
-      const ev = JSON.parse(roomData.guest_event);
-      if(ev && ev.id !== ol_lastGuestEvent){
-        ol_lastGuestEvent = ev.id;
-        ol_processGuestEvent(ev);
-        // Clear the event after processing
-        await getSB().from('bubble_games')
-          .update({guest_event: null})
-          .eq('code', ol_code);
-      }
-    }
-  }catch(e){}
-  try{
-    const state = {
-      bubbleX: Math.round(bubbleX*10)/10,
-      tiltLevel,
-      phase,
-      pressureOn,
-      round,
-      q: currentQ ? {
-        cat: currentQ.cat,
-        q: currentQ.q,
-        opts: currentQ.opts,
-        ans: currentQ.ans
-      } : null,
-      ts: Date.now()
-    };
-    await getSB().from('bubble_games')
-      .update({game_state: JSON.stringify(state), status:'playing'})
-      .eq('code', ol_code);
-  }catch(e){ console.log('sync err:', e); }
-}
-
-// ── GUEST: APPLY HOST STATE ────────────────────────────────────
-function ol_applyState(state){
-  if(!ol_mode || !state) return;
-  // Sync bubble position
-  if(state.bubbleX !== undefined){
-    ol_targetBubbleX = state.bubbleX;
-    bubbleX = state.bubbleX;
-    tiltLevel = state.tiltLevel || 0;
-    tilt = tiltLevel * 5;
-    renderBubble(bubbleX, tilt);
-  }
-  tiltLevel = state.tiltLevel;
-  tilt = tiltLevel * 5;
-  renderBubble(bubbleX, tilt);
-
-  // Sync round badge
-  if(state.round !== round){
-    round = state.round;
-  }
-
-  // Sync question
-  if(state.q && state.q.q && (!currentQ || currentQ.q !== state.q.q)){
-    currentQ = state.q;
-    try{ setZoneQ(1, currentQ); setZoneQ(2, currentQ); }catch(e){}
-  }
-
-  // Only update UI when phase or pressureOn actually changes
-  const newPhase = state.phase || phase;
-  const newPressureOn = state.pressureOn !== undefined ? state.pressureOn : pressureOn;
-  phase = newPhase;
-  pressureOn = newPressureOn;
-
-  const phaseChanged = (newPhase !== ol_lastPhase || newPressureOn !== ol_lastPressureOn);
-
-  if(phaseChanged){
-    ol_lastPhase = newPhase;
-    ol_lastPressureOn = newPressureOn;
-
-    if(phase === 'buzzer'){
-      const label = t('starter');
-      const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
-      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
-      showZone(1,'buzzer');
-      showZone(2,'buzzer');
-      stopFlow();
-    } else if(phase === 'answering' && currentQ){
-      playBuzzSound(); // play sound on guest too
-      const label2 = t('pressureQ');
-      const tiltInd2 = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
-      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label2+tiltInd2;
-      showZone(pressureOn,'answering');
-      showZone(pressureOn===1?2:1,'waiting');
-      if(pressureOn === 2){
-        buildAnswers(2, currentQ);
-      }
-    }
-  }
-
-  // Guest just renders, host controls physics
-  // Nothing needed here - renderBubble above handles display
-}
-
-// ── GUEST: INTERCEPT BUTTONS ────────────────────────────────────
-function ol_guestSetupButtons(){
-  // Override playerBuzz globally for guest — catches all buzz attempts
-  window._origPlayerBuzz = window.playerBuzz;
-  window.playerBuzz = function(p){
-    if(ol_mode && ol_role === 'guest'){
-      if(p === 2) ol_guestSendEvent({type:'buzz'});
-      return; // guest never runs local buzz logic
-    }
-    window._origPlayerBuzz(p);
-  };
-  // Also poll every 300ms as fallback in case realtime misses updates
-  ol_syncInterval = setInterval(ol_guestPoll, 300);
-}
-
-async function ol_guestPoll(){
-  if(!ol_code) return;
-  try{
-    const {data} = await getSB()
-      .from('bubble_games')
-      .select('game_state, status, host_name, guest_name')
-      .eq('code', ol_code)
-      .single();
-    if(!data) return;
-    
-    // Start game if not started yet
-    if(!ol_mode && (data.status === 'playing' || data.status === 'starting')){
-      ol_startGame();
-      return;
-    }
-    
-    // Apply game state
-    if(ol_mode && data.game_state){
-      const state = JSON.parse(data.game_state);
-      ol_applyState(state);
-    }
-    if(data.status === 'gameover'){
-      clearInterval(ol_syncInterval);
-    }
-  }catch(e){ console.log('poll err:', e); }
-}
-
-function ol_guestBuildAnswers(q){
-  const grid = document.getElementById('answers2');
-  grid.innerHTML = '';
-  q.opts.forEach((opt,i)=>{
-    const btn = document.createElement('button');
-    btn.className = 'ans-btn';
-    btn.textContent = ['A','B','C','D'][i] + '. ' + opt;
-    btn.onclick = () => {
-      grid.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
-      ol_guestSendEvent({type:'answer', chosen:i});
-      // Show local visual feedback immediately
-      if(i === q.ans){ btn.classList.add('correct'); playCorrectSound(); }
-      else{ btn.classList.add('wrong'); playWrongSound(); }
-    };
-    grid.appendChild(btn);
-  });
-}
-
-async function ol_guestSendEvent(ev){
-  ev.id = Date.now() + Math.random();
-  try{
-    await getSB().from('bubble_games')
-      .update({guest_event: JSON.stringify(ev)})
-      .eq('code', ol_code);
-  }catch(e){}
-}
-
-// ── CANCEL ────────────────────────────────────────────────────
-async function ol_cancel(){
-  if(ol_syncInterval) clearInterval(ol_syncInterval);
-  if(ol_channel) getSB().removeChannel(ol_channel);
-  if(ol_code){
-    try{ await getSB().from('bubble_games').delete().eq('code', ol_code); }catch(e){}
-  }
-  ol_mode = false; ol_role = null; ol_code = null;
-  _showScreen('setup');
-}
-
-// ── HOOK INTO endGame FOR ONLINE ───────────────────────────────
-const _origEndGame = endGame;
-window.endGame = async function(winnerP){
-  if(ol_mode && ol_role === 'host'){
-    if(ol_syncInterval) clearInterval(ol_syncInterval);
-    try{
-      await getSB().from('bubble_games')
-        .update({status:'gameover', game_state: JSON.stringify({winner:winnerP, ts:Date.now()})})
-        .eq('code', ol_code);
-    }catch(e){}
-  }
-  _origEndGame(winnerP);
-};
-
 window.addEventListener('load',()=>setLang('de'));
 </script>
 <!-- ═══ LEADERBOARD SCREEN ═══ -->
 <div class="screen" id="leaderboard">
   <div class="lb-header">
-    <div class="lb-title">🏆 HALL OF FAME</div>
-    <button class="lb-back" onclick="closeLeaderboard()">← BACK</button>
+    <div class="lb-title" id="lb-title">🏆 HALL OF FAME</div>
+    <button class="lb-back" onclick="closeLeaderboard()" id="lb-back">← BACK</button>
   </div>
   <div id="lb-content" style="padding:0 20px 20px;"></div>
 </div>
@@ -2110,7 +1633,7 @@ window.addEventListener('load',()=>setLang('de'));
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--muted);letter-spacing:.1em" id="sm-wins">10 WINS</div>
     <div class="streak-msg" id="sm-msg">Keep the streak alive!</div>
   </div>
-  <button class="btn-continue" onclick="closeStreakModal()">CONTINUE →</button>
+  <button class="btn-continue" id="btn-continue" onclick="closeStreakModal()">CONTINUE →</button>
 </div>
 
 
@@ -2120,96 +1643,34 @@ window.addEventListener('load',()=>setLang('de'));
     <div class="cb-avatar">🤖</div>
     <div>
       <div class="cb-title">BUBBLE BOT</div>
-      <div class="cb-subtitle">POST-GAME ANALYSIS</div>
+      <div class="cb-subtitle" id="cb-subtitle">POST-GAME ANALYSIS</div>
     </div>
   </div>
 
   <!-- AI Verdict -->
   <div class="cb-card">
-    <div class="cb-card-title">⚡ Verdict</div>
+    <div class="cb-card-title" id="cb-title-verdict">⚡ Verdict</div>
     <div id="cb-verdict">
       <div class="cb-verdict-loading">
         <div class="cb-spinner"></div>
-        <span>Analyzing your game...</span>
+        <span id="cb-analyzing">Analyzing your game...</span>
       </div>
     </div>
   </div>
 
   <!-- Stats -->
   <div class="cb-card">
-    <div class="cb-card-title">📊 Stats</div>
+    <div class="cb-card-title" id="cb-title-stats">📊 Stats</div>
     <div class="cb-stats" id="cb-stats"></div>
   </div>
 
   <!-- Question breakdown -->
   <div class="cb-card">
-    <div class="cb-card-title">🔍 Question Breakdown</div>
+    <div class="cb-card-title" id="cb-title-questions">🔍 Question Breakdown</div>
     <div id="cb-questions"></div>
   </div>
 
-  <button class="cb-close" onclick="closeCrossbot()">PLAY AGAIN →</button>
-</div>
-
-
-<div class="screen" id="lobby" style="align-items:center;justify-content:center;padding:2rem;gap:1.5rem;overflow-y:auto;">
-  <div class="logo" style="font-size:2.2rem;">THE BUBBLE</div>
-  <div id="lobby-mode" style="color:var(--blue);font-size:.85rem;letter-spacing:.15em;">ONLINE MODUS</div>
-
-  <div id="lobby-form" style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:1rem;">
-    <input id="ol-name" placeholder="Dein Name" maxlength="20"
-      style="font-family:'DM Sans',sans-serif;font-size:1.1rem;padding:14px;border-radius:10px;
-      border:1px solid rgba(0,212,255,0.3);background:rgba(255,255,255,0.05);color:#fff;text-align:center;">
-
-    <button onclick="ol_create()"
-      style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.1em;
-      padding:14px;border:none;border-radius:10px;
-      background:linear-gradient(135deg,#00d4ff,#0066cc);color:#fff;cursor:pointer;">
-      🎮 SPIEL ERSTELLEN
-    </button>
-
-    <div style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:.85rem;">
-      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
-      oder
-      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;">
-      <input id="ol-code" placeholder="CODE" maxlength="4"
-        style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.3em;
-        padding:12px;border-radius:10px;border:1px solid rgba(0,212,255,0.3);
-        background:rgba(255,255,255,0.05);color:#fff;text-align:center;flex:1;text-transform:uppercase;">
-      <button onclick="ol_join()"
-        style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;padding:12px 18px;
-        border-radius:10px;border:1px solid rgba(0,212,255,0.3);
-        background:rgba(0,212,255,0.1);color:#00d4ff;cursor:pointer;">
-        BEITRETEN
-      </button>
-    </div>
-  </div>
-
-  <div id="lobby-waiting" style="display:none;flex-direction:column;align-items:center;gap:1.2rem;width:100%;max-width:360px;">
-    <div style="color:rgba(255,255,255,0.5);font-size:.85rem;">DEIN SPIELCODE</div>
-    <div id="ol-display-code"
-      style="font-family:'Bebas Neue',sans-serif;font-size:4rem;letter-spacing:.4em;color:#00d4ff;">
-      ----
-    </div>
-    <div id="ol-status" style="color:rgba(255,255,255,0.5);font-size:.9rem;text-align:center;">
-      ⏳ Warte auf Gegner...
-    </div>
-    <button onclick="ol_cancel()"
-      style="font-family:'DM Sans',sans-serif;font-size:.85rem;padding:8px 20px;
-      border:1px solid rgba(255,255,255,0.15);border-radius:20px;
-      background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;">
-      Abbrechen
-    </button>
-  </div>
-
-  <button onclick="ol_back()"
-    style="font-family:'DM Sans',sans-serif;font-size:.85rem;padding:8px 20px;
-    border:1px solid rgba(255,255,255,0.1);border-radius:20px;
-    background:transparent;color:rgba(255,255,255,0.3);cursor:pointer;margin-top:.5rem;">
-    ← Zurück zum Party-Modus
-  </button>
+  <button class="cb-close" id="cb-close" onclick="closeCrossbot()">PLAY AGAIN →</button>
 </div>
 
 </body></html>
