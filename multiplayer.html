@@ -1639,10 +1639,10 @@ function testSound(){
 }
 
 
+
 // ═══════════════════════════════════════════════════════════════
-// ONLINE MULTIPLAYER — HOST/GUEST ARCHITECTURE
-// HOST controls all game logic and syncs to Supabase
-// GUEST sends input events and mirrors HOST state
+// ONLINE MULTIPLAYER - CLEAN REWRITE
+// HOST controls all logic, GUEST polls and mirrors
 // ═══════════════════════════════════════════════════════════════
 
 const SB_URL = 'https://dkolonjnectukbydsexo.supabase.co';
@@ -1653,472 +1653,260 @@ function getSB(){
   return _sb;
 }
 
-let ol_mode = false;      // online mode active
-let ol_lastPhase = null;
-let ol_lastPressureOn = null;
-let ol_targetBubbleX = 250;  // target position from host
-let ol_role = null;       // 'host' or 'guest'
-let ol_code = null;       // 4-char room code
-let ol_myName = '';
-let ol_oppName = '';
-let ol_channel = null;    // realtime channel
-let ol_syncInterval = null;
-let ol_pendingEvent = null; // guest queues events here
+let ol_mode=false, ol_role=null, ol_code=null;
+let ol_myName='', ol_oppName='';
+let ol_pollTimer=null, ol_syncTimer=null, ol_eventTimer=null;
+let ol_lastEventId=null;
+let ol_guestPhase=null, ol_guestPressure=null, ol_guestQ=null;
+let ol_bubbleTarget=250;
 
-// ── SCREEN NAVIGATION ──────────────────────────────────────────
-function ol_open(){
-  _showScreen('lobby');
-  document.getElementById('lobby-form').style.display = 'flex';
-  document.getElementById('lobby-waiting').style.display = 'none';
-}
-function ol_back(){ _showScreen('setup'); }
-function _showScreen(id){
+function ol_show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-// ── GENERATE CODE ──────────────────────────────────────────────
+function ol_open(){
+  ol_show('lobby');
+  document.getElementById('lobby-form').style.display='flex';
+  document.getElementById('lobby-waiting').style.display='none';
+}
+function ol_back(){ ol_show('setup'); }
+
 function ol_genCode(){
   const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
 }
 
-// ── CREATE GAME ────────────────────────────────────────────────
 async function ol_create(){
-  const name = document.getElementById('ol-name').value.trim();
+  const name=document.getElementById('ol-name').value.trim();
   if(!name){ alert('Bitte gib deinen Namen ein!'); return; }
-  ol_myName = name;
-  ol_role = 'host';
-  ol_code = ol_genCode();
-
-  document.getElementById('ol-display-code').textContent = ol_code;
-  document.getElementById('lobby-form').style.display = 'none';
-  document.getElementById('lobby-waiting').style.display = 'flex';
-  document.getElementById('ol-status').textContent = '⏳ Warte auf Gegner...';
-
+  ol_myName=name; ol_role='host'; ol_code=ol_genCode();
+  document.getElementById('ol-display-code').textContent=ol_code;
+  document.getElementById('lobby-form').style.display='none';
+  document.getElementById('lobby-waiting').style.display='flex';
+  document.getElementById('ol-status').textContent='⏳ Warte auf Gegner...';
   try{
-    // Delete any old rooms with same code
-    await getSB().from('bubble_games').delete().eq('code', ol_code);
-    
-    // Create fresh room
-    const {error} = await getSB().from('bubble_games').insert({
-      code: ol_code,
-      host_name: ol_myName,
-      guest_name: null,
-      status: 'waiting',
-      game_state: null,
-      guest_event: null
+    await getSB().from('bubble_games').delete().eq('code',ol_code);
+    const {error}=await getSB().from('bubble_games').insert({
+      code:ol_code, host_name:ol_myName, guest_name:null,
+      status:'waiting', game_state:null, guest_event:null
     });
     if(error) throw error;
-
-    // Watch for guest joining
-    ol_channel = getSB()
-      .channel('room-' + ol_code)
-      .on('postgres_changes',
-        {event:'UPDATE', schema:'public', table:'bubble_games', filter:'code=eq.'+ol_code},
-        (payload) => ol_hostHandleUpdate(payload.new)
-      )
-      .subscribe();
-
-  }catch(e){
-    alert('Fehler: ' + e.message);
-    _showScreen('lobby');
-  }
+    ol_pollTimer=setInterval(async()=>{
+      const {data}=await getSB().from('bubble_games').select('guest_name,status').eq('code',ol_code).single();
+      if(data&&data.guest_name&&!ol_mode){
+        clearInterval(ol_pollTimer);
+        ol_oppName=data.guest_name;
+        document.getElementById('ol-status').textContent='✓ '+ol_oppName+' ist da!';
+        setTimeout(ol_startGame,800);
+      }
+    },1000);
+  }catch(e){ alert('Fehler: '+e.message); ol_show('setup'); }
 }
 
-// ── JOIN GAME ──────────────────────────────────────────────────
 async function ol_join(){
-  const name = document.getElementById('ol-name').value.trim();
-  const code = document.getElementById('ol-code').value.trim().toUpperCase();
+  const name=document.getElementById('ol-name').value.trim();
+  const code=document.getElementById('ol-code').value.trim().toUpperCase();
   if(!name){ alert('Bitte gib deinen Namen ein!'); return; }
-  if(code.length !== 4){ alert('Bitte gib den 4-stelligen Code ein!'); return; }
-
-  ol_myName = name;
-  ol_role = 'guest';
-  ol_code = code;
-
-  document.getElementById('ol-status') && (document.getElementById('ol-status').textContent = 'Verbinde...');
-
+  if(code.length!==4){ alert('4-stelligen Code eingeben!'); return; }
+  ol_myName=name; ol_role='guest'; ol_code=code;
   try{
-    // Find room
-    const {data, error} = await getSB()
-      .from('bubble_games')
-      .select('*')
-      .eq('code', code)
-      .eq('status', 'waiting')
-      .single();
-
-    if(error || !data) throw new Error('Spiel nicht gefunden! Prüfe den Code.');
-    if(!data.host_name) throw new Error('Spiel ungültig. Bitte neuen Code anfordern.');
-
-    ol_oppName = data.host_name || 'Gegner';
-
-    // Join room
-    const {error:e2} = await getSB()
-      .from('bubble_games')
-      .update({guest_name: ol_myName, status: 'starting'})
-      .eq('code', code);
-    if(e2) throw e2;
-
-    // Subscribe to game state updates from host
-    ol_channel = getSB()
-      .channel('room-' + ol_code)
-      .on('postgres_changes',
-        {event:'UPDATE', schema:'public', table:'bubble_games', filter:'code=eq.'+ol_code},
-        (payload) => ol_guestHandleUpdate(payload.new)
-      )
-      .subscribe();
-
-    // Show waiting screen briefly
-    _showScreen('lobby');
-    document.getElementById('lobby-form').style.display = 'none';
-    document.getElementById('lobby-waiting').style.display = 'flex';
-    document.getElementById('ol-display-code').textContent = code;
-    document.getElementById('ol-status').textContent = '✓ Verbunden! Warte auf Start...';
-
-  }catch(e){
-    alert('Fehler: ' + e.message);
-  }
+    const {data,error}=await getSB().from('bubble_games').select('*').eq('code',code).eq('status','waiting').single();
+    if(error||!data) throw new Error('Spiel nicht gefunden!');
+    ol_oppName=data.host_name;
+    await getSB().from('bubble_games').update({guest_name:ol_myName,status:'starting'}).eq('code',code);
+    document.getElementById('lobby-form').style.display='none';
+    document.getElementById('lobby-waiting').style.display='flex';
+    document.getElementById('ol-display-code').textContent=code;
+    document.getElementById('ol-status').textContent='✓ Verbunden! Warte...';
+    ol_show('lobby');
+    ol_pollTimer=setInterval(async()=>{
+      const {data}=await getSB().from('bubble_games').select('status,game_state').eq('code',ol_code).single();
+      if(data&&data.status==='playing'&&data.game_state&&!ol_mode){
+        clearInterval(ol_pollTimer);
+        ol_startGame();
+      }
+    },500);
+  }catch(e){ alert('Fehler: '+e.message); }
 }
 
-// ── HOST: HANDLE DB UPDATE ─────────────────────────────────────
-function ol_hostHandleUpdate(row){
-  if(!row) return;
-  if(row.status === 'starting' && row.guest_name && !ol_mode){
-    ol_oppName = row.guest_name || 'Gegner';
-    document.getElementById('ol-status').textContent = '✓ ' + ol_oppName + ' ist da! Starte...';
-    setTimeout(() => ol_startGame(), 800);
-  }
-
-  // Host processes guest events
-  if(row.guest_event){
-    const ev = JSON.parse(row.guest_event);
-    if(ev && ev.id !== ol_lastGuestEvent){
-      ol_lastGuestEvent = ev.id;
-      ol_processGuestEvent(ev);
-    }
-  }
+async function ol_cancel(){
+  clearInterval(ol_pollTimer); clearInterval(ol_syncTimer); clearInterval(ol_eventTimer);
+  if(ol_code) try{await getSB().from('bubble_games').delete().eq('code',ol_code);}catch(e){}
+  ol_mode=false; ol_role=null; ol_code=null;
+  ol_show('setup');
 }
 
-let ol_lastGuestEvent = null;
-
-function ol_processGuestEvent(ev){
-  // Guest is always player 2 (host=P1, guest=P2)
-  if(ev.type === 'buzz'){
-    if(phase === 'buzzer'){
-      playerBuzz(2);
-      // Sync immediately so guest gets phase+pressureOn right away
-      setTimeout(ol_hostSync, 50);
-      setTimeout(ol_hostSync, 150);
-    }
-  } else if(ev.type === 'answer'){
-    if(phase === 'answering' && pressureOn === 2){
-      const grid = document.getElementById('answers2');
-      submitAnswer(2, parseInt(ev.chosen), currentQ.ans, grid);
-      // Sync immediately after answer
-      setTimeout(ol_hostSync, 100);
-      setTimeout(ol_hostSync, 400);
-    }
-  }
-}
-
-// ── GUEST: HANDLE DB UPDATE ────────────────────────────────────
-function ol_guestHandleUpdate(row){
-  if(!row) return;
-  // Start game when host begins playing
-  if((row.status === 'playing' || row.status === 'starting') && !ol_mode){
-    ol_startGame();
-    return;
-  }
-  if(row.game_state && ol_mode){
-    try{
-      const state = JSON.parse(row.game_state);
-      ol_applyState(state);
-    }catch(e){}
-  }
-}
-
-// ── START GAME ────────────────────────────────────────────────
 function ol_startGame(){
-  ol_mode = true;
-
-  // Host = P1, Guest = P2
-  if(ol_role === 'host'){
-    p1Name = ol_myName;
-    p2Name = ol_oppName;
-  } else {
-    p1Name = ol_oppName;
-    p2Name = ol_myName;
-  }
-
-  document.getElementById('gname1').textContent = p1Name;
-  document.getElementById('gname2').textContent = p2Name;
-  document.getElementById('blabel1').textContent = p1Name;
-  document.getElementById('blabel2').textContent = p2Name;
-
+  clearInterval(ol_pollTimer);
+  ol_mode=true;
+  if(ol_role==='host'){ p1Name=ol_myName; p2Name=ol_oppName; }
+  else{ p1Name=ol_oppName; p2Name=ol_myName; }
+  document.getElementById('gname1').textContent=p1Name;
+  document.getElementById('gname2').textContent=p2Name;
+  document.getElementById('blabel1').textContent=p1Name;
+  document.getElementById('blabel2').textContent=p2Name;
   bubbleX=250; flowSpeed=0; tilt=0; tiltLevel=0;
   if(animId) cancelAnimationFrame(animId); animId=null;
   phase='buzzer'; pressureOn=0; usedQs=[]; round=1; gameLog=[];
-
-  _showScreen('game');
-  // Apply guest view — flip so guest sees their zone at bottom
-  if(ol_role === 'guest'){
-    document.getElementById('game').classList.add('guest-view');
-  } else {
-    document.getElementById('game').classList.remove('guest-view');
-  }
+  ol_guestPhase=null; ol_guestPressure=null; ol_guestQ=null; ol_bubbleTarget=250;
+  if(ol_role==='guest') document.getElementById('game').classList.add('guest-view');
+  else document.getElementById('game').classList.remove('guest-view');
+  ol_show('game');
   initAudio();
 
-  if(ol_role === 'host'){
-    // Host picks question and starts
-    currentQ = pickQ();
-    renderBubble(250, 0);
+  if(ol_role==='host'){
+    currentQ=pickQ();
+    renderBubble(250,0);
     startBuzzerPhase();
-    // Sync multiple times at start to ensure guest receives first state
+    // Intercept playerBuzz to sync immediately
+    const origBuzz=playerBuzz;
+    window.playerBuzz=function(p){
+      origBuzz(p);
+      setTimeout(ol_hostSync,30);
+      setTimeout(ol_hostSync,200);
+    };
+    // Intercept submitAnswer to sync after answer
+    const origSubmit=submitAnswer;
+    window.submitAnswer=function(p,c,correct,grid){
+      origSubmit(p,c,correct,grid);
+      setTimeout(ol_hostSync,30);
+      setTimeout(ol_hostSync,600);
+      setTimeout(ol_hostSync,1200);
+    };
+    ol_syncTimer=setInterval(ol_hostSync,200);
+    ol_eventTimer=setInterval(ol_checkGuestEvent,200);
     ol_hostSync();
-    setTimeout(ol_hostSync, 300);
-    setTimeout(ol_hostSync, 700);
-    // Then keep syncing every 150ms
-    ol_syncInterval = setInterval(ol_hostSync, 150);
   } else {
-    // Guest: intercept button presses, poll for host state
-    ol_guestSetupButtons();
-    renderBubble(250, 0);
-    document.getElementById('round-badge').textContent = 'WARTE AUF HOST...';
-    // Poll immediately multiple times to catch first state fast
-    setTimeout(ol_guestPoll, 300);
-    setTimeout(ol_guestPoll, 700);
-    setTimeout(ol_guestPoll, 1200);
-    setTimeout(ol_guestPoll, 2000);
+    renderBubble(250,0);
+    document.getElementById('round-badge').textContent='WARTE AUF HOST...';
+    ol_pollTimer=setInterval(ol_guestPoll,200);
+    requestAnimationFrame(ol_guestAnim);
   }
 }
 
-// ── HOST SYNC ─────────────────────────────────────────────────
 async function ol_hostSync(){
   if(!ol_code) return;
   try{
-    // Also check for guest events (fallback if realtime missed it)
-    const {data: roomData} = await getSB()
-      .from('bubble_games')
-      .select('guest_event')
-      .eq('code', ol_code)
-      .single();
-    if(roomData && roomData.guest_event){
-      const ev = JSON.parse(roomData.guest_event);
-      if(ev && ev.id !== ol_lastGuestEvent){
-        ol_lastGuestEvent = ev.id;
-        ol_processGuestEvent(ev);
-        // Clear the event after processing
-        await getSB().from('bubble_games')
-          .update({guest_event: null})
-          .eq('code', ol_code);
-      }
+    const state={phase,pressureOn,round,tiltLevel,
+      bubbleX:Math.round(bubbleX*10)/10,
+      q:currentQ?{cat:currentQ.cat,q:currentQ.q,opts:currentQ.opts,ans:currentQ.ans}:null,
+      ts:Date.now()};
+    await getSB().from('bubble_games')
+      .update({game_state:JSON.stringify(state),status:'playing'})
+      .eq('code',ol_code);
+  }catch(e){}
+}
+
+async function ol_checkGuestEvent(){
+  if(!ol_mode||ol_role!=='host'||!ol_code) return;
+  try{
+    const {data}=await getSB().from('bubble_games').select('guest_event').eq('code',ol_code).single();
+    if(!data||!data.guest_event) return;
+    const ev=JSON.parse(data.guest_event);
+    if(!ev||ev.id===ol_lastEventId) return;
+    ol_lastEventId=ev.id;
+    await getSB().from('bubble_games').update({guest_event:null}).eq('code',ol_code);
+    if(ev.type==='buzz'&&phase==='buzzer') playerBuzz(2);
+    else if(ev.type==='answer'&&phase==='answering'&&pressureOn===2){
+      const grid=document.getElementById('answers2');
+      submitAnswer(2,parseInt(ev.chosen),currentQ.ans,grid);
     }
   }catch(e){}
+}
+
+async function ol_guestSend(ev){
+  ev.id=Date.now()+'-'+Math.random();
   try{
-    const state = {
-      bubbleX: Math.round(bubbleX*10)/10,
-      tiltLevel,
-      phase,
-      pressureOn,
-      round,
-      q: currentQ ? {
-        cat: currentQ.cat,
-        q: currentQ.q,
-        opts: currentQ.opts,
-        ans: currentQ.ans
-      } : null,
-      ts: Date.now()
-    };
-    await getSB().from('bubble_games')
-      .update({game_state: JSON.stringify(state), status:'playing'})
-      .eq('code', ol_code);
-  }catch(e){ console.log('sync err:', e); }
-}
-
-// ── GUEST: APPLY HOST STATE ────────────────────────────────────
-function ol_applyState(state){
-  if(!ol_mode || !state) return;
-  // Sync bubble position - set target, let anim loop interpolate
-  if(state.bubbleX !== undefined){
-    ol_targetBubbleX = state.bubbleX;
-    tiltLevel = state.tiltLevel || 0;
-    tilt = tiltLevel * 5;
-    // Update tilt immediately but let anim loop move bubble
-    document.getElementById('bubble-svg').style.transform='rotate('+(-tilt)+'deg)';
-  }
-  tiltLevel = state.tiltLevel;
-  tilt = tiltLevel * 5;
-  renderBubble(bubbleX, tilt);
-
-  // Sync round badge
-  if(state.round !== round){
-    round = state.round;
-  }
-
-  // Sync question
-  if(state.q && state.q.q && (!currentQ || currentQ.q !== state.q.q)){
-    currentQ = state.q;
-    try{ setZoneQ(1, currentQ); setZoneQ(2, currentQ); }catch(e){}
-  }
-
-  // Only update UI when phase or pressureOn actually changes
-  const newPhase = state.phase || phase;
-  const newPressureOn = state.pressureOn !== undefined ? state.pressureOn : pressureOn;
-  phase = newPhase;
-  pressureOn = newPressureOn;
-
-  const phaseChanged = (newPhase !== ol_lastPhase || newPressureOn !== ol_lastPressureOn);
-
-  if(phaseChanged){
-    ol_lastPhase = newPhase;
-    ol_lastPressureOn = newPressureOn;
-
-    if(phase === 'buzzer'){
-      // Clear answer grids for new question
-      document.getElementById('answers1').innerHTML = '';
-      document.getElementById('answers2').innerHTML = '';
-      ol_lastBuiltQ = null;
-      const label = pressureOn === 0 ? t('starter') : t('pressureQ');
-      const tiltInd = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
-      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label+tiltInd;
-      showZone(1,'buzzer');
-      showZone(2,'buzzer');
-      stopFlow();
-    } else if(phase === 'answering' && currentQ){
-      playBuzzSound(); // play sound on guest too
-      const label2 = t('pressureQ');
-      const tiltInd2 = tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
-      document.getElementById('round-badge').textContent = 'ROUND '+round+' · '+label2+tiltInd2;
-      showZone(pressureOn,'answering');
-      showZone(pressureOn===1?2:1,'waiting');
-      if(pressureOn === 2){
-        buildAnswers(2, currentQ);
-      }
-    }
-  }
-
-  // Guest just renders, host controls physics
-  // Nothing needed here - renderBubble above handles display
-}
-
-// ── GUEST: INTERCEPT BUTTONS ────────────────────────────────────
-function ol_guestSetupButtons(){
-  // Override playerBuzz globally for guest — catches all buzz attempts
-  window._origPlayerBuzz = window.playerBuzz;
-  window.playerBuzz = function(p){
-    if(ol_mode && ol_role === 'guest'){
-      if(p === 2) ol_guestSendEvent({type:'buzz'});
-      return;
-    }
-    window._origPlayerBuzz(p);
-  };
-  // Poll every 300ms for game state
-  ol_syncInterval = setInterval(ol_guestPoll, 150);
-  // Smooth bubble animation loop for guest
-  ol_guestAnimLoop();
-}
-
-function ol_guestAnimLoop(){
-  if(!ol_mode || ol_role !== 'guest') return;
-  // Move bubble toward target position
-  const diff = ol_targetBubbleX - bubbleX;
-  if(Math.abs(diff) > 0.2){
-    bubbleX += diff * 0.12;
-    document.getElementById('the-bubble').setAttribute('cx', bubbleX);
-    document.getElementById('bshine').setAttribute('cx', bubbleX - 6);
-    // Color based on position
-    const inDanger = bubbleX < 115 || bubbleX > 385;
-    document.getElementById('the-bubble').setAttribute('fill', inDanger ? 'url(#dangerG)' : 'url(#bubG)');
-  }
-  requestAnimationFrame(ol_guestAnimLoop);
+    await getSB().from('bubble_games').update({guest_event:JSON.stringify(ev)}).eq('code',ol_code);
+  }catch(e){}
 }
 
 async function ol_guestPoll(){
-  if(!ol_code) return;
+  if(!ol_mode||!ol_code) return;
   try{
-    const {data} = await getSB()
-      .from('bubble_games')
-      .select('game_state, status, host_name, guest_name')
-      .eq('code', ol_code)
-      .single();
-    if(!data) return;
-    
-    // Start game if not started yet
-    if(!ol_mode && (data.status === 'playing' || data.status === 'starting')){
-      ol_startGame();
-      return;
-    }
-    
-    // Apply game state
-    if(ol_mode && data.game_state){
-      const state = JSON.parse(data.game_state);
-      ol_applyState(state);
-    }
-    if(data.status === 'gameover'){
-      clearInterval(ol_syncInterval);
-    }
-  }catch(e){ console.log('poll err:', e); }
-}
-
-function ol_guestBuildAnswers(q){
-  const grid = document.getElementById('answers2');
-  grid.innerHTML = '';
-  q.opts.forEach((opt,i)=>{
-    const btn = document.createElement('button');
-    btn.className = 'ans-btn';
-    btn.textContent = ['A','B','C','D'][i] + '. ' + opt;
-    btn.onclick = () => {
-      btn.blur();
-      grid.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
-      ol_guestSendEvent({type:'answer', chosen:i});
-      // Show local visual feedback immediately
-      if(i === q.ans){
-        btn.classList.add('correct');
-        playCorrectSound();
-        // If correct, remove under-pressure from guest (will be on opponent next)
-        document.getElementById('blabel2').classList.remove('under-pressure');
-      } else {
-        btn.classList.add('wrong');
-        playWrongSound();
-      }
-    };
-    grid.appendChild(btn);
-  });
-}
-
-async function ol_guestSendEvent(ev){
-  ev.id = Date.now() + Math.random();
-  try{
-    await getSB().from('bubble_games')
-      .update({guest_event: JSON.stringify(ev)})
-      .eq('code', ol_code);
+    const {data}=await getSB().from('bubble_games').select('game_state').eq('code',ol_code).single();
+    if(data&&data.game_state) ol_applyState(JSON.parse(data.game_state));
   }catch(e){}
 }
 
-// ── CANCEL ────────────────────────────────────────────────────
-async function ol_cancel(){
-  if(ol_syncInterval) clearInterval(ol_syncInterval);
-  if(ol_channel) getSB().removeChannel(ol_channel);
-  if(ol_code){
-    try{ await getSB().from('bubble_games').delete().eq('code', ol_code); }catch(e){}
+function ol_applyState(state){
+  if(!state) return;
+  // Bubble target
+  if(state.bubbleX!==undefined){
+    ol_bubbleTarget=state.bubbleX;
+    tiltLevel=state.tiltLevel||0;
+    const deg=-(tiltLevel*5);
+    document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
   }
-  ol_mode = false; ol_role = null; ol_code = null;
-  _showScreen('setup');
+  round=state.round||round;
+  // Question
+  const qChanged=state.q&&(!currentQ||currentQ.q!==state.q.q);
+  if(qChanged){ currentQ=state.q; setZoneQ(1,currentQ); setZoneQ(2,currentQ); }
+  // Phase
+  const phaseChanged=state.phase!==ol_guestPhase||state.pressureOn!==ol_guestPressure||qChanged;
+  if(phaseChanged){
+    ol_guestPhase=state.phase; ol_guestPressure=state.pressureOn;
+    phase=state.phase; pressureOn=state.pressureOn||0;
+    const label=pressureOn===0?t('starter'):t('pressureQ');
+    const ti=tiltLevel===0?'':(tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)):' · ◀'.repeat(Math.abs(tiltLevel)));
+    document.getElementById('round-badge').textContent='ROUND '+round+' · '+label+ti;
+    // Clear answers
+    document.getElementById('answers1').innerHTML='';
+    document.getElementById('answers2').innerHTML='';
+    if(phase==='buzzer'){
+      showZone(1,'buzzer'); showZone(2,'buzzer');
+    } else if(phase==='answering'&&currentQ){
+      playBuzzSound();
+      if(pressureOn===2){
+        showZone(2,'answering'); showZone(1,'waiting');
+        ol_buildGuestAnswers(currentQ);
+      } else {
+        showZone(1,'answering'); showZone(2,'waiting');
+      }
+    }
+  }
 }
 
-// ── HOOK INTO endGame FOR ONLINE ───────────────────────────────
-const _origEndGame = endGame;
-window.endGame = async function(winnerP){
-  if(ol_mode && ol_role === 'host'){
-    if(ol_syncInterval) clearInterval(ol_syncInterval);
-    try{
-      await getSB().from('bubble_games')
-        .update({status:'gameover', game_state: JSON.stringify({winner:winnerP, ts:Date.now()})})
-        .eq('code', ol_code);
-    }catch(e){}
+function ol_buildGuestAnswers(q){
+  const grid=document.getElementById('answers2');
+  grid.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='ans-btn';
+    btn.style.cssText='outline:none;-webkit-tap-highlight-color:transparent;border-color:rgba(255,255,255,0.08);';
+    btn.textContent=['A','B','C','D'][i]+'. '+opt;
+    btn.onclick=()=>{
+      btn.blur();
+      grid.querySelectorAll('.ans-btn').forEach(b=>{b.disabled=true;b.style.pointerEvents='none';});
+      ol_guestSend({type:'answer',chosen:i});
+      if(i===q.ans){ btn.classList.add('correct'); playCorrectSound(); }
+      else{ btn.classList.add('wrong'); playWrongSound(); }
+    };
+    grid.appendChild(btn);
+  });
+  grid.style.display='grid';
+}
+
+function ol_guestAnim(){
+  if(!ol_mode||ol_role!=='guest') return;
+  const diff=ol_bubbleTarget-bubbleX;
+  if(Math.abs(diff)>0.2){
+    bubbleX+=diff*0.1;
+    document.getElementById('the-bubble').setAttribute('cx',Math.round(bubbleX*10)/10);
+    document.getElementById('bshine').setAttribute('cx',Math.round(bubbleX*10)/10-6);
+    document.getElementById('the-bubble').setAttribute('fill',(bubbleX<115||bubbleX>385)?'url(#dangerG)':'url(#bubG)');
   }
-  _origEndGame(winnerP);
+  requestAnimationFrame(ol_guestAnim);
+}
+
+const _ol_origEnd=endGame;
+window.endGame=async function(w){
+  clearInterval(ol_syncTimer); clearInterval(ol_eventTimer); clearInterval(ol_pollTimer);
+  if(ol_mode&&ol_role==='host'){
+    try{await getSB().from('bubble_games').update({status:'gameover'}).eq('code',ol_code);}catch(e){}
+  }
+  _ol_origEnd(w);
 };
 
 window.addEventListener('load',()=>setLang('de'));
