@@ -771,9 +771,9 @@ function playerBuzz(p){
 }
 
 function submitAnswer(p,chosen,correct,grid){
-  grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
+  if(grid) grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
   const ok=chosen===correct;
-  if(!ok)grid.querySelectorAll('.ans-btn')[chosen].classList.add('wrong');
+  if(!ok){ const wrongBtn=grid.querySelectorAll('.ans-btn')[chosen]; if(wrongBtn) wrongBtn.classList.add('wrong'); }
   if(ok) playCorrectSound(); else playWrongSound();
   // Log for CrossBot
   gameLog.push({
