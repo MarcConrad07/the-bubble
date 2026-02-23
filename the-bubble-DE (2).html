@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>THE BUBBLE®</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');
+:root{--blue:#00d4ff;--red:#ff3b3b;--gold:#ffd700;--bg:#060a12;--surface:#0e1520;--surface2:#14202e;--border:rgba(0,212,255,0.15);--text:#e8f4ff;--muted:#6a8aaa}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;touch-action:manipulation}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(0,100,180,.12),transparent),radial-gradient(ellipse 80% 40% at 50% 100%,rgba(180,0,0,.08),transparent);pointer-events:none}
+.screen{display:none;position:fixed;inset:0;z-index:1}
+.screen.active{display:flex;flex-direction:column}
+#setup{align-items:center;justify-content:center;padding:20px;gap:18px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,12vw,6rem);letter-spacing:.08em;background:linear-gradient(135deg,#fff 0%,var(--blue) 50%,#fff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 30px rgba(0,212,255,.4));text-align:center;line-height:1}
+.logo-sub{font-size:.65rem;letter-spacing:.4em;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:4px}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:400px}
+.setup-card h2{font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;color:var(--blue);font-size:1.4rem;margin-bottom:14px}
+.player-inputs{display:flex;flex-direction:column;gap:12px}
+.input-row{display:flex;flex-direction:column;gap:4px}
+.input-label{font-size:.7rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.game-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;width:100%;transition:border-color .2s}
+.game-input:focus{border-color:var(--blue)}
+.vs-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.8rem}
+.vs-divider::before,.vs-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.lang-row{display:flex;gap:8px;justify-content:center}
+.lang-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:7px 20px;border-radius:20px;cursor:pointer;font-size:.85rem;transition:all .2s;font-family:'DM Sans',sans-serif}
+.lang-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(0,212,255,.08)}
+.btn-start{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.15em;padding:16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),#0066cc);color:#fff;cursor:pointer;width:100%;max-width:400px;box-shadow:0 0 30px rgba(0,180,255,.3);transition:all .2s}
+#game{flex-direction:column}
+.zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;position:relative;transition:background .3s}
+.zone.p2{transform:rotate(180deg)}
+@keyframes dangerFlash{0%,100%{background:transparent}50%{background:rgba(255,59,59,.15)}}
+@keyframes winFlash{0%,100%{background:transparent}50%{background:rgba(255,215,0,.15)}}
+.zone.winner-flash{animation:winFlash .6s ease}
+.player-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.player-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.1em}
+.pressure-badge{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;padding:3px 10px;border-radius:20px;border:1px solid var(--red);color:var(--red);display:none}
+.pressure-badge.show{display:block;animation:pulseBadge .8s infinite}
+@keyframes pulseBadge{0%,100%{opacity:1}50%{opacity:.4}}
+.q-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;width:100%;max-width:480px;text-align:center}
+.q-category{font-size:.6rem;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+.q-text{font-size:clamp(.82rem,2.4vw,1.1rem);font-weight:600;line-height:1.4;min-height:38px}
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:480px;margin-top:8px}
+.ans-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
+.ans-btn:active{transform:scale(.97)}
+.ans-btn.correct{border-color:#00ff88;background:rgba(0,255,136,.12);color:#00ff88}
+.ans-btn.wrong{border-color:var(--red);background:rgba(255,59,59,.12);color:var(--red)}
+.ans-btn:disabled{cursor:default}
+.buzzer-btn{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,5vw,2rem);letter-spacing:.15em;padding:13px 36px;border:none;border-radius:12px;cursor:pointer;transition:all .15s;width:100%;max-width:300px}
+.buzzer-btn:active{transform:scale(.95)}
+.buzzer-btn.p1-btn{background:linear-gradient(135deg,var(--blue),#0055bb);color:#fff;box-shadow:0 0 25px rgba(0,180,255,.35)}
+.buzzer-btn.p2-btn{background:linear-gradient(135deg,#ff5555,#aa0000);color:#fff;box-shadow:0 0 25px rgba(255,59,59,.35)}
+.buzzer-btn:disabled{opacity:.35;cursor:default;transform:none}
+.wait-msg{font-size:.82rem;color:var(--muted);text-align:center;padding:12px 0}
+.middle{display:flex;flex-direction:column;align-items:center;padding:2px 14px;flex-shrink:0}
+#bubble-svg{width:100%;max-width:460px;height:auto;filter:drop-shadow(0 0 18px rgba(0,212,255,.25));transition:transform .7s cubic-bezier(.34,1.56,.64,1)}
+.bubble-labels{display:flex;justify-content:space-between;width:100%;max-width:460px;padding:0 6px;margin-top:1px}
+.blabel{font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.1em;padding:3px 10px;border-radius:20px}
+.blabel.p1{color:var(--blue);border:1px solid rgba(0,212,255,.3)}
+.blabel.p2{color:#ff6b6b;border:1px solid rgba(255,107,107,.3)}
+.blabel.under-pressure{animation:pulseLabel .7s infinite}
+@keyframes pulseLabel{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(255,59,59,.5)}}
+.round-badge{font-size:.6rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;text-align:center;padding:1px 0}
+#result-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px}
+#result-overlay.show{display:flex}
+.result-card{background:var(--surface);border:2px solid var(--gold);border-radius:20px;padding:32px;text-align:center;max-width:360px;width:100%;box-shadow:0 0 60px rgba(255,215,0,.2)}
+.result-emoji{font-size:3.5rem;margin-bottom:10px}
+.result-title{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.15em;color:var(--gold)}
+.result-winner{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:.1em;margin-top:4px}
+.result-sub{color:var(--muted);font-size:.82rem;margin-top:8px;line-height:1.6}
+.result-btns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:260px}
+.btn-again{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:.12em;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),#cc9900);color:#000;cursor:pointer;transition:all .2s}
+.btn-home{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;padding:11px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.btn-home:hover{border-color:var(--blue);color:var(--blue)}
+#feedback-overlay{display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;pointer-events:none}
+#feedback-overlay.show{display:flex}
+.feedback-msg{font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,7vw,3.5rem);letter-spacing:.15em;text-align:center;padding:18px 36px;border-radius:14px}
+@keyframes feedbackPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.feedback-msg.correct{color:#00ff88;background:rgba(0,255,136,.1);border:2px solid #00ff88;animation:feedbackPop .3s ease}
+.feedback-msg.wrong{color:var(--red);background:rgba(255,59,59,.1);border:2px solid var(--red);animation:feedbackPop .3s ease}
+
+.score-badge{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem;
+  letter-spacing:.05em;
+  min-width:2.2rem;
+  text-align:center;
+  padding:2px 10px;
+  border-radius:8px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.1);
+  transition:transform .15s;
+}
+.score-badge.pop{animation:scorePop .3s ease;}
+@keyframes scorePop{0%{transform:scale(1)}50%{transform:scale(1.5)}100%{transform:scale(1)}}
+
+
+/* ── STREAK DISPLAY ── */
+.streak-display{
+  display:flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);
+  font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.05em;
+}
+.streak-icon{font-size:1.2rem;}
+.streak-count{color:var(--gold);}
+
+/* ── LEADERBOARD SCREEN ── */
+#leaderboard{background:var(--bg);overflow-y:auto;}
+.lb-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 10px;flex-shrink:0;
+}
+.lb-title{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.15em;
+  background:linear-gradient(135deg,var(--gold),#ffaa00);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.lb-back{
+  font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;
+  background:none;border:1px solid var(--border);color:var(--muted);
+  padding:7px 16px;border-radius:20px;cursor:pointer;
+}
+.lb-back:hover{border-color:var(--blue);color:var(--blue);}
+
+.tier-section{padding:8px 20px 0;}
+.tier-header{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.15em;
+  color:var(--muted);margin-bottom:6px;padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+.lb-entry{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;margin-bottom:6px;
+  transition:border-color .2s;
+}
+.lb-entry.top1{border-color:var(--gold);box-shadow:0 0 15px rgba(255,215,0,.15);}
+.lb-entry.top2{border-color:#aaa;}
+.lb-entry.top3{border-color:#cd7f32;}
+.lb-rank{
+  font-family:'Bebas Neue',sans-serif;font-size:1.3rem;
+  color:var(--muted);width:28px;text-align:center;flex-shrink:0;
+}
+.lb-badge{font-size:1.4rem;flex-shrink:0;}
+.lb-name{flex:1;font-weight:600;font-size:.95rem;}
+.lb-wins{
+  font-family:'Bebas Neue',sans-serif;font-size:1.4rem;
+  color:var(--gold);letter-spacing:.05em;
+}
+.lb-wins-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+
+.empty-lb{
+  text-align:center;color:var(--muted);padding:40px 20px;
+  font-size:.9rem;line-height:1.8;
+}
+
+/* ── WIN STREAK MODAL ── */
+#streak-modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);
+  z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;
+}
+#streak-modal.show{display:flex;}
+.streak-card{
+  background:var(--surface);border-radius:20px;padding:32px;text-align:center;
+  max-width:340px;width:100%;
+}
+.streak-tier-icon{font-size:5rem;margin-bottom:8px;}
+.streak-tier-name{
+  font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:.15em;
+  margin-bottom:4px;
+}
+.streak-msg{color:var(--muted);font-size:.85rem;line-height:1.6;margin-top:8px;}
+.streak-new-badge{
+  font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+  padding:4px 14px;border-radius:20px;margin-bottom:8px;display:inline-block;
+}
+.btn-continue{
+  font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.12em;
+  padding:13px 40px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),#0055bb);color:#fff;cursor:pointer;
+}
+
+
+/* ── CROSSBOT OVERLAY ── */
+#crossbot-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);
+  z-index:150;flex-direction:column;align-items:center;
+  overflow-y:auto;padding:20px 16px 40px;
+}
+#crossbot-overlay.show{display:flex;}
+
+.cb-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:18px;width:100%;max-width:480px;
+}
+.cb-avatar{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),#0044aa);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;flex-shrink:0;
+  box-shadow:0 0 20px rgba(0,212,255,.4);
+}
+.cb-title{
+  font-family:'Bebas Neue',sans-serif;font-size:1.6rem;
+  letter-spacing:.12em;color:var(--blue);
+}
+.cb-subtitle{font-size:.7rem;color:var(--muted);letter-spacing:.1em;margin-top:1px;}
+
+.cb-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:18px;width:100%;max-width:480px;
+  margin-bottom:12px;
+}
+.cb-card-title{
+  font-family:'Bebas Neue',sans-serif;font-size:1rem;
+  letter-spacing:.15em;color:var(--muted);margin-bottom:12px;
+  text-transform:uppercase;
+}
+
+/* Verdict */
+.cb-verdict{
+  font-size:1rem;line-height:1.7;color:var(--text);
+  white-space:pre-wrap;
+}
+.cb-verdict-loading{
+  display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.9rem;
+}
+.cb-spinner{
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--blue);border-radius:50%;
+  animation:spin .7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Stats grid */
+.cb-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cb-stat{
+  background:var(--surface2);border-radius:8px;padding:10px 12px;
+  border:1px solid var(--border);
+}
+.cb-stat-val{
+  font-family:'Bebas Neue',sans-serif;font-size:1.5rem;
+  letter-spacing:.05em;
+}
+.cb-stat-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+
+/* Question breakdown */
+.cb-q-row{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 0;border-bottom:1px solid var(--border);
+}
+.cb-q-row:last-child{border-bottom:none;}
+.cb-q-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.cb-q-body{flex:1;}
+.cb-q-cat{font-size:.6rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;}
+.cb-q-text{font-size:.8rem;line-height:1.4;margin-top:2px;}
+.cb-q-answer{font-size:.75rem;margin-top:3px;}
+.cb-q-answer.wrong{color:var(--red);}
+.cb-q-answer.correct{color:#00ff88;}
+.cb-q-player{font-size:.65rem;color:var(--muted);margin-top:2px;}
+
+.cb-close{
+  font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.12em;
+  padding:12px 40px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),#0055bb);color:#fff;
+  cursor:pointer;margin-top:6px;width:100%;max-width:480px;
+}
+
+
+/* ── BUBBLE BURST ── */
+#burst-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden;
+}
+.burst-particle{
+  position:absolute;
+  border-radius:50%;
+  animation:burstFly var(--dur) ease-out forwards;
+}
+@keyframes burstFly{
+  0%  { transform:translate(0,0) scale(1); opacity:1; }
+  100%{ transform:translate(var(--tx),var(--ty)) scale(0); opacity:0; }
+}
+.burst-ring{
+  position:absolute;
+  border-radius:50%;
+  border:3px solid var(--ring-color);
+  animation:ringExpand .6s ease-out forwards;
+}
+@keyframes ringExpand{
+  0%  { transform:translate(-50%,-50%) scale(0); opacity:1; }
+  100%{ transform:translate(-50%,-50%) scale(8); opacity:0; }
+}
+#screen-flash{
+  position:fixed;inset:0;pointer-events:none;z-index:89;
+  background:white;opacity:0;
+  animation:none;
+}
+#screen-flash.flash{
+  animation:screenFlash .5s ease-out forwards;
+}
+@keyframes screenFlash{
+  0%  {opacity:.85;}
+  100%{opacity:0;}
+}
+
+@media(max-height:700px){.q-box{padding:8px 12px}.answers-grid{gap:5px}.ans-btn{padding:7px 5px}.buzzer-btn{padding:10px 28px;font-size:1.4rem}.player-name{font-size:1.1rem}}
+</style>
+</head>
+<body>
+
+<div class="screen active" id="setup">
+  <div style="text-align:center">
+    <div class="logo">THE BUBBLE</div>
+    <div class="logo-sub">® Party Edition</div>
+  </div>
+  <div class="setup-card">
+    <h2 id="lbl-players">Players</h2>
+    <div class="player-inputs">
+      <div class="input-row">
+        <div class="input-label" id="lbl-p1">Player 1 (Bottom)</div>
+        <input class="game-input" id="name1" type="text" placeholder="Enter name..." maxlength="16">
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="input-row">
+        <div class="input-label" id="lbl-p2">Player 2 (Top)</div>
+        <input class="game-input" id="name2" type="text" placeholder="Enter name..." maxlength="16">
+      </div>
+    </div>
+  </div>
+  <button id="btn-sound" onclick="testSound(this)" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
+    🔊 Sound aktivieren &amp; testen
+  </button>
+  <div class="lang-row">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('de')">DE</button>
+  </div>
+  <button class="btn-start" onclick="startGame()" id="btn-start">LET'S BUBBLE!</button>
+  <button id="btn-hof" onclick="openLeaderboard()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;background:none;border:none;color:var(--muted);cursor:pointer;letter-spacing:.05em;padding:4px 0;">🏆 Hall of Fame</button>
+</div>
+
+<div class="screen" id="game">
+  <button id="music-toggle" onclick="toggleMusic()" style="position:absolute;top:8px;right:10px;z-index:10;background:rgba(0,180,255,0.15);border:1px solid rgba(0,212,255,0.4);color:#fff;border-radius:20px;padding:5px 14px;font-size:1rem;cursor:pointer;">🔊</button>
+  <div class="zone p2" id="zone-p2">
+    <div class="player-header">
+      <div class="player-name" id="gname2" style="color:#ff6b6b">PLAYER 2</div>
+      <div class="score-badge" id="score2">0</div>
+      <div class="streak-display" id="streak2" style="display:none"><span class="streak-icon">🔥</span><span class="streak-count">0</span></div>
+      <div class="pressure-badge" id="badge2">UNDER PRESSURE</div>
+    </div>
+    <div class="q-box" id="qbox2" style="display:none">
+      <div class="q-category" id="qcat2"></div>
+      <div class="q-text" id="qtext2"></div>
+    </div>
+    <div class="answers-grid" id="answers2" style="display:none"></div>
+    <div class="wait-msg" id="wait2" style="display:none"></div>
+    <button class="buzzer-btn p2-btn" id="buzz2" onclick="playerBuzz(2)" style="display:none">BUZZ!</button>
+  </div>
+
+  <div class="middle">
+    <div class="round-badge" id="round-badge">ROUND 1 · STARTER QUESTION</div>
+    <svg id="bubble-svg" viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="bglow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="tubeG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#1a3a5c"/>
+          <stop offset="50%" style="stop-color:#0b1e38"/>
+          <stop offset="100%" style="stop-color:#081525"/>
+        </linearGradient>
+        <linearGradient id="bubG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#ff9999"/>
+          <stop offset="40%" style="stop-color:#ff2222"/>
+          <stop offset="100%" style="stop-color:#990000"/>
+        </linearGradient>
+        <linearGradient id="dangerG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffcc00"/>
+          <stop offset="100%" style="stop-color:#ff4400"/>
+        </linearGradient>
+      </defs>
+      <rect x="28" y="42" width="444" height="36" rx="18" fill="url(#tubeG)" stroke="#1a4a7a" stroke-width="1.5"/>
+      <rect x="48" y="45" width="404" height="9" rx="4.5" fill="rgba(100,200,255,0.07)"/>
+      <circle cx="38" cy="60" r="24" fill="#0a1828" stroke="#1a4a7a" stroke-width="1.5"/>
+      <circle cx="38" cy="60" r="16" fill="#0d1e35"/>
+      <circle cx="462" cy="60" r="24" fill="#0a1828" stroke="#1a4a7a" stroke-width="1.5"/>
+      <circle cx="462" cy="60" r="16" fill="#0d1e35"/>
+      <line x1="250" y1="35" x2="250" y2="85" stroke="rgba(0,212,255,0.25)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="156" y1="38" x2="156" y2="82" stroke="rgba(0,212,255,0.1)" stroke-width="1"/>
+      <line x1="344" y1="38" x2="344" y2="82" stroke="rgba(0,212,255,0.1)" stroke-width="1"/>
+      <rect x="28" y="42" width="68" height="36" rx="18" fill="rgba(255,59,59,0.1)"/>
+      <rect x="404" y="42" width="68" height="36" rx="18" fill="rgba(255,59,59,0.1)"/>
+      <circle id="the-bubble" cx="250" cy="60" r="14" fill="url(#bubG)" filter="url(#bglow)"/>
+      <circle id="bshine" cx="244" cy="54" r="4" fill="rgba(255,255,255,0.6)"/>
+    </svg>
+    <div class="bubble-labels">
+      <div class="blabel p1" id="blabel1">P1</div>
+      <div class="blabel p2" id="blabel2">P2</div>
+    </div>
+  </div>
+
+  <div class="zone p1" id="zone-p1">
+    <button class="buzzer-btn p1-btn" id="buzz1" onclick="playerBuzz(1)" style="display:none">BUZZ!</button>
+    <div class="wait-msg" id="wait1" style="display:none"></div>
+    <div class="answers-grid" id="answers1" style="display:none"></div>
+    <div class="q-box" id="qbox1" style="display:none">
+      <div class="q-category" id="qcat1"></div>
+      <div class="q-text" id="qtext1"></div>
+    </div>
+    <div class="player-header">
+      <div class="pressure-badge" id="badge1">UNDER PRESSURE</div>
+      <div class="player-name" id="gname1" style="color:var(--blue)">PLAYER 1</div>
+      <div class="score-badge" id="score1">0</div>
+      <div class="streak-display" id="streak1" style="display:none"><span class="streak-icon">🔥</span><span class="streak-count">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="burst-overlay"></div>
+<div id="screen-flash"></div>
+<div id="feedback-overlay">
+  <div class="feedback-msg" id="feedback-msg"></div>
+</div>
+
+<div id="result-overlay">
+  <div class="result-card">
+    <div class="result-emoji">🏆</div>
+    <div class="result-title" id="res-title">WINNER!</div>
+    <div class="result-winner" id="res-winner">—</div>
+    <div class="result-sub" id="res-sub">The bubble reached the end!</div>
+    <div class="result-sub" id="res-scores" style="margin-top:12px;font-size:1rem;color:var(--text)"></div>
+  </div>
+  <div class="result-btns">
+    <button class="btn-again" id="btn-again" onclick="playAgain()">🔄 Play Again</button>
+    <button class="btn-again" id="btn-bot" onclick="openCrossbot(currentWinner, currentLoser)" style="background:linear-gradient(135deg,#00ff88,#009955);margin-top:0">🤖 BubbleBot Analysis</button>
+    <button class="btn-home" id="btn-home" onclick="goHome()">← New Game</button>
+  </div>
+</div>
+
+<script>
+const QUESTIONS={en:[
+{cat:"Sports",q:"In which US state does the Daytona 500 take place?",opts:["Florida","California","Texas","Nevada"],ans:0},
+{cat:"Sports",q:"Which is a higher level belt in karate?",opts:["Blue","Yellow","White","Orange"],ans:0},
+{cat:"Sports",q:"How many players are in a cricket team?",opts:["11","9","10","12"],ans:0},
+{cat:"Sports",q:"Which sport is NOT played with a ball?",opts:["Ice Hockey","Rugby","Tennis","Basketball"],ans:0},
+{cat:"Sports",q:"Which country is Roger Federer from?",opts:["Switzerland","Austria","Germany","France"],ans:0},
+{cat:"Sports",q:"Which fruit tops the Wimbledon gentlemen's trophy?",opts:["Pineapple","Strawberry","Apple","Grape"],ans:0},
+{cat:"Sports",q:"In which country does the Masters Tournament take place?",opts:["United States","Great Britain","Australia","Spain"],ans:0},
+{cat:"Sports",q:"Which sport has a 'white water' variety?",opts:["Rafting","Speed Skating","Swimming","Cycling"],ans:0},
+{cat:"Football",q:"When was the first FIFA World Cup held?",opts:["1930","1920","1940","1925"],ans:0},
+{cat:"Football",q:"In which European city was FIFA founded?",opts:["Paris","Geneva","Brussels","London"],ans:0},
+{cat:"Football",q:"David Beckham became president of which club?",opts:["Inter Miami","West London Blue","LA Stars","Miami FC"],ans:0},
+{cat:"Football",q:"Paul Van Himst is a celebrated footballer of which nationality?",opts:["Belgian","French","Dutch","German"],ans:0},
+{cat:"Football",q:"Which team won the African Cup of Nations a record 7 times?",opts:["Egypt","Senegal","Cameroon","Ghana"],ans:0},
+{cat:"Football",q:"Thierry Henry's professional debut was with which club?",opts:["Monaco","Juventus","Arsenal","Barcelona"],ans:0},
+{cat:"Science",q:"On the pH scale, what is below 7?",opts:["Acid","Alkaline","Neutral","Base"],ans:0},
+{cat:"Science",q:"What does a pluviometer measure?",opts:["Rainfall","Air Pressure","Temperature","Wind Speed"],ans:0},
+{cat:"Science",q:"Which blood type is the rarest?",opts:["AB Negative","O Positive","A Negative","B Positive"],ans:0},
+{cat:"Science",q:"Photosynthesis is carried out by?",opts:["Plants","Animals","Fungi","Bacteria"],ans:0},
+{cat:"Science",q:"How many bones in the adult human body?",opts:["206","156","186","226"],ans:0},
+{cat:"Science",q:"What is a group of atoms called?",opts:["Molecule","Neutron","Proton","Electron"],ans:0},
+{cat:"Science",q:"How much of Earth's surface is water?",opts:["70%","50%","60%","80%"],ans:0},
+{cat:"Science",q:"What does a 'Light Year' measure?",opts:["Distance","Speed","Time","Mass"],ans:0},
+{cat:"Science",q:"Which element has the symbol Ag?",opts:["Silver","Iron","Gold","Copper"],ans:0},
+{cat:"Science",q:"How many elements are on the periodic table?",opts:["118","78","100","92"],ans:0},
+{cat:"Germany",q:"Which city is NOT in Bavaria?",opts:["Ulm","Erlangen","Nuremberg","Munich"],ans:0},
+{cat:"Germany",q:"What is Saarland?",opts:["Federal State","Amusement Park","A River","A Mountain"],ans:0},
+{cat:"Germany",q:"Germany's highest mountain peak?",opts:["Zugspitze","Karwendel","Watzmann","Brocken"],ans:0},
+{cat:"Germany",q:"In Germany, 'Gymnasium' means?",opts:["School","Sports hall","Hospital","Library"],ans:0},
+{cat:"Germany",q:"Which state has the Black Forest?",opts:["Baden-Württemberg","Bavaria","Hesse","Saxony"],ans:0},
+{cat:"Germany",q:"German name for Lake Constance?",opts:["Bodensee","Konstanzsee","Schwabensee","Rheinsee"],ans:0},
+{cat:"Environment",q:"Why is CO2 called a greenhouse gas?",opts:["It absorbs heat","It absorbs moisture","It reflects sunlight","It cools the air"],ans:0},
+{cat:"Environment",q:"The ozone hole over Antarctica was discovered in?",opts:["1985","1965","1975","1995"],ans:0},
+{cat:"Environment",q:"Which region has the most biodiversity?",opts:["Tropical Region","Polar Region","Desert","Tundra"],ans:0},
+{cat:"Environment",q:"El Nino is a...",opts:["Warm Ocean Current","Sea Storm","Cold Wind","Hurricane"],ans:0},
+{cat:"Religion",q:"A follower of Islam is called a...",opts:["Muslim","Brahman","Buddhist","Hindu"],ans:0},
+{cat:"Religion",q:"The Torah belongs to which religion?",opts:["Judaism","Christianity","Islam","Buddhism"],ans:0},
+{cat:"Religion",q:"Diwali is important to which religion?",opts:["Hinduism","Judaism","Islam","Christianity"],ans:0},
+{cat:"Religion",q:"Ramadan is the holy month of which religion?",opts:["Islam","Hinduism","Buddhism","Judaism"],ans:0},
+{cat:"Politics",q:"What is the official seat of the European Parliament?",opts:["Strasbourg","Luxembourg","Brussels","Paris"],ans:0},
+{cat:"Politics",q:"The world's largest democracy is?",opts:["India","United States","Brazil","Indonesia"],ans:0},
+{cat:"Politics",q:"Symbol of the US Democratic party?",opts:["Donkey","Elephant","Eagle","Bear"],ans:0},
+{cat:"Politics",q:"Years Nelson Mandela spent in prison?",opts:["27","17","37","47"],ans:0},
+{cat:"Politics",q:"Psephology is the study of?",opts:["Elections","Private Enterprise","Foreign Policy","Trade"],ans:0},
+{cat:"Politics",q:"Who is the current King of England?",opts:["Charles III","Charles II","William V","George VII"],ans:0},
+{cat:"Arts",q:"Where is Paddington Bear from?",opts:["Peru","India","Australia","Africa"],ans:0},
+{cat:"Arts",q:"Who wrote the Iliad?",opts:["Homer","Virgil","Dante","Plato"],ans:0},
+{cat:"Arts",q:"Don Quixote was written in?",opts:["Spanish","Italian","French","Portuguese"],ans:0},
+{cat:"Arts",q:"Who painted 'Girl with a Pearl Earring'?",opts:["Johannes Vermeer","Van Gogh","Rembrandt","Rubens"],ans:0},
+{cat:"Arts",q:"Which London theatre is linked to Shakespeare?",opts:["The Globe","The Earth","The Rose","The Swan"],ans:0},
+{cat:"Arts",q:"Where is the Colosseum?",opts:["Rome","Naples","Milan","Florence"],ans:0},
+{cat:"Arts",q:"Which museum has the Mona Lisa?",opts:["Le Louvre","Uffizi","The Met","Prado"],ans:0},
+{cat:"Arts",q:"How many wives did Henry VIII have?",opts:["6","3","4","8"],ans:0},
+{cat:"Maths",q:"How many sides does a hexagon have?",opts:["6","7","5","8"],ans:0},
+{cat:"Maths",q:"Three fifths of 100?",opts:["60","5","50","30"],ans:0},
+{cat:"Maths",q:"How many years in a decade?",opts:["10","20","5","100"],ans:0},
+{cat:"Maths",q:"How many months in a century?",opts:["1200","12000","120","12"],ans:0},
+{cat:"Music",q:"Which song ends with 'And Many More'?",opts:["Happy Birthday","Old Macdonald","Jingle Bells","Auld Lang Syne"],ans:0},
+{cat:"Music",q:"Which song is NOT by The Beatles?",opts:["Like A Rolling Stone","All You Need Is Love","Hey Jude","Let It Be"],ans:0},
+{cat:"Music",q:"Which show made One Direction famous?",opts:["The X Factor","The Voice","American Idol","Got Talent"],ans:0},
+{cat:"Music",q:"Which group was Beyonce in before going solo?",opts:["Destiny's Child","Spice Girls","TLC","En Vogue"],ans:0},
+{cat:"Geography",q:"Capital of New Zealand?",opts:["Wellington","Auckland","Christchurch","Hamilton"],ans:0},
+{cat:"Geography",q:"Mallorca belongs to which archipelago?",opts:["Balearic Islands","Canary Islands","Azores","Madeira"],ans:0},
+{cat:"Geography",q:"Highest mountain in Japan?",opts:["Mount Fuji","Mount Tate","Mount Kita","Mount Haku"],ans:0},
+{cat:"Geography",q:"Height of Mount Everest?",opts:["8849 m","6849 m","7849 m","9849 m"],ans:0},
+{cat:"Geography",q:"Miles from Earth to the sun?",opts:["93 Million","9.3 Million","930 Million","9.3 Billion"],ans:0},
+{cat:"Words",q:"What insect inspired 'Computer Bug'?",opts:["Moth","Roach","Ant","Beetle"],ans:0},
+{cat:"Words",q:"N in NASA stands for?",opts:["National","North","Natural","Naval"],ans:0},
+{cat:"Entertainment",q:"Who played Emily in 'Emily in Paris'?",opts:["Lily Collins","Lily James","Lily Allen","Lily Tomlin"],ans:0},
+{cat:"Entertainment",q:"Marshall's job in 'How I Met Your Mother'?",opts:["Lawyer","Architect","Doctor","Teacher"],ans:0},
+{cat:"Entertainment",q:"Garfield's favourite food?",opts:["Lasagna","Burger","Pizza","Spaghetti"],ans:0},
+{cat:"Entertainment",q:"The Floss dance is from which game?",opts:["Fortnite","Grand Theft Auto","Minecraft","Roblox"],ans:0},
+{cat:"Entertainment",q:"Which 'Friends' character says 'How You Doin'?",opts:["Joey","Ross","Chandler","Phoebe"],ans:0},
+{cat:"Movies",q:"Where were Lord of the Rings filmed?",opts:["New Zealand","Iceland","Canada","Scotland"],ans:0},
+{cat:"Movies",q:"Who directed Silence of the Lambs?",opts:["Jonathan Demme","Oliver Stone","Spielberg","Fincher"],ans:0},
+{cat:"Movies",q:"In Home Alone, where were the McCallisters flying?",opts:["France","England","Italy","Spain"],ans:0},
+{cat:"Movies",q:"Who is Simba's uncle in The Lion King?",opts:["Scar","Mufasa","Rafiki","Zazu"],ans:0},
+{cat:"Movies",q:"Daniel Craig's first Bond film?",opts:["Casino Royale","No Time To Die","Skyfall","Spectre"],ans:0},
+{cat:"Movies",q:"Which Disney film has a character named Mr. Banks?",opts:["Mary Poppins","The Aristocats","Cinderella","Dumbo"],ans:0},
+{cat:"Food",q:"Main spirit in a Bloody Mary?",opts:["Vodka","Gin","Rum","Tequila"],ans:0},
+{cat:"Food",q:"Guacamole is made of?",opts:["Avocado","Banana","Mango","Papaya"],ans:0},
+{cat:"Food",q:"Most consumed drink in the world after water?",opts:["Tea","Coffee","Beer","Juice"],ans:0},
+{cat:"Food",q:"Where were hot dogs invented?",opts:["Germany","America","Austria","France"],ans:0},
+{cat:"Food",q:"Peanuts are classified as?",opts:["Legumes","Nuts","Seeds","Berries"],ans:0},
+{cat:"Animals",q:"What can chameleons change?",opts:["Color","Hairstyle","Size","Shape"],ans:0},
+{cat:"Animals",q:"Fastest running bird in the world?",opts:["Ostrich","Emu","Roadrunner","Penguin"],ans:0},
+{cat:"History",q:"Who said 'Veni, vidi, vici'?",opts:["Julius Caesar","Charles de Gaulle","Napoleon","Augustus"],ans:0},
+{cat:"History",q:"Alexander and Catherine share which title?",opts:["The Great","The Ferocious","The Wise","The Bold"],ans:0},
+{cat:"History",q:"Which Nobel Prize did Churchill win?",opts:["Literature","Peace","Economics","Chemistry"],ans:0},
+{cat:"Tech",q:"Where was the World Wide Web invented?",opts:["Switzerland","United States","UK","Germany"],ans:0},
+{cat:"Tech",q:"When was the first email sent?",opts:["1971","1974","1969","1980"],ans:0},
+{cat:"Tech",q:"First item sold on eBay?",opts:["Broken laser pointer","Rusty bucket","Baseball card","Book"],ans:0},
+{cat:"Tech",q:"Oldest programming language still in use?",opts:["FORTRAN","COBOL","BASIC","Pascal"],ans:0}
+],de:[
+{cat:"Sport",q:"In welchem US-Bundesstaat findet das Daytona 500 statt?",opts:["Florida","Kalifornien","Texas","Nevada"],ans:0},
+{cat:"Sport",q:"Welcher Gürtel ist im Karate höherrangig?",opts:["Blau","Gelb","Weiß","Orange"],ans:0},
+{cat:"Sport",q:"Wie viele Spieler hat ein Cricket-Team?",opts:["11","9","10","12"],ans:0},
+{cat:"Sport",q:"Welche Sportart wird NICHT mit einem Ball gespielt?",opts:["Eishockey","Rugby","Tennis","Basketball"],ans:0},
+{cat:"Sport",q:"Aus welchem Land kommt Roger Federer?",opts:["Schweiz","Österreich","Deutschland","Frankreich"],ans:0},
+{cat:"Sport",q:"Welche Frucht ziert den Wimbledon-Siegerpokal?",opts:["Ananas","Erdbeere","Apfel","Traube"],ans:0},
+{cat:"Sport",q:"In welchem Land findet das Masters-Golfturnier statt?",opts:["USA","Großbritannien","Australien","Spanien"],ans:0},
+{cat:"Fußball",q:"Wann fand die erste Fußball-WM statt?",opts:["1930","1920","1940","1925"],ans:0},
+{cat:"Fußball",q:"In welcher Stadt wurde die FIFA gegründet?",opts:["Paris","Genf","Brüssel","London"],ans:0},
+{cat:"Fußball",q:"David Beckham wurde Präsident welches Vereins?",opts:["Inter Miami","West London Blue","LA Stars","Miami FC"],ans:0},
+{cat:"Fußball",q:"Welche Nationalität hat Paul Van Himst?",opts:["Belgisch","Französisch","Niederländisch","Deutsch"],ans:0},
+{cat:"Fußball",q:"Welches Team gewann den Afrikacup Rekord 7 Mal?",opts:["Ägypten","Senegal","Kamerun","Ghana"],ans:0},
+{cat:"Fußball",q:"Bei welchem Klub debütierte Thierry Henry?",opts:["Monaco","Juventus","Arsenal","Barcelona"],ans:0},
+{cat:"Wissenschaft",q:"Was liegt auf der pH-Skala unter 7?",opts:["Säure","Base","Neutral","Lauge"],ans:0},
+{cat:"Wissenschaft",q:"Was misst ein Pluviometer?",opts:["Niederschlag","Luftdruck","Temperatur","Windgeschwindigkeit"],ans:0},
+{cat:"Wissenschaft",q:"Welche Blutgruppe ist am seltensten?",opts:["AB Negativ","0 Positiv","A Negativ","B Positiv"],ans:0},
+{cat:"Wissenschaft",q:"Photosynthese wird durchgeführt von?",opts:["Pflanzen","Tieren","Pilzen","Bakterien"],ans:0},
+{cat:"Wissenschaft",q:"Wie viele Knochen hat der Mensch?",opts:["206","156","186","226"],ans:0},
+{cat:"Wissenschaft",q:"Was ist eine Gruppe von Atomen?",opts:["Molekül","Neutron","Proton","Elektron"],ans:0},
+{cat:"Wissenschaft",q:"Wie viel % der Erde ist mit Wasser bedeckt?",opts:["70%","50%","60%","80%"],ans:0},
+{cat:"Wissenschaft",q:"Was misst ein Lichtjahr?",opts:["Entfernung","Geschwindigkeit","Zeit","Masse"],ans:0},
+{cat:"Wissenschaft",q:"Welches Element hat das Symbol Ag?",opts:["Silber","Eisen","Gold","Kupfer"],ans:0},
+{cat:"Wissenschaft",q:"Wie viele Elemente gibt es im Periodensystem?",opts:["118","78","100","92"],ans:0},
+{cat:"Deutschland",q:"Welche Stadt liegt NICHT in Bayern?",opts:["Ulm","Erlangen","Nürnberg","München"],ans:0},
+{cat:"Deutschland",q:"Was ist das Saarland?",opts:["Bundesland","Freizeitpark","Fluss","Gebirge"],ans:0},
+{cat:"Deutschland",q:"Deutschlands höchster Berggipfel?",opts:["Zugspitze","Karwendel","Watzmann","Brocken"],ans:0},
+{cat:"Deutschland",q:"Was ist ein Gymnasium in Deutschland?",opts:["Schule","Sporthalle","Krankenhaus","Bibliothek"],ans:0},
+{cat:"Deutschland",q:"In welchem Bundesland liegt der Schwarzwald?",opts:["Baden-Württemberg","Bayern","Hessen","Sachsen"],ans:0},
+{cat:"Deutschland",q:"Englischer Name des Bodensees?",opts:["Lake Constance","Lake Baden","Rhine Lake","South Lake"],ans:0},
+{cat:"Umwelt",q:"Warum ist CO2 ein Treibhausgas?",opts:["Es absorbiert Wärme","Es absorbiert Feuchtigkeit","Es reflektiert Licht","Es kühlt"],ans:0},
+{cat:"Umwelt",q:"Wann wurde das Ozonloch entdeckt?",opts:["1985","1965","1975","1995"],ans:0},
+{cat:"Umwelt",q:"Welcher Bereich hat die größte Artenvielfalt?",opts:["Tropen","Polarregion","Wüste","Tundra"],ans:0},
+{cat:"Umwelt",q:"El Nino ist eine...",opts:["Warme Meeresströmung","Seesturm","Kalter Wind","Hurrikan"],ans:0},
+{cat:"Religion",q:"Ein Anhänger des Islam heißt?",opts:["Muslim","Brahmane","Buddhist","Hindu"],ans:0},
+{cat:"Religion",q:"Die Thora gehört welcher Religion?",opts:["Judentum","Christentum","Islam","Buddhismus"],ans:0},
+{cat:"Religion",q:"Diwali gehört zu welcher Religion?",opts:["Hinduismus","Judentum","Islam","Christentum"],ans:0},
+{cat:"Religion",q:"Ramadan ist der heilige Fastenmonat des?",opts:["Islam","Hinduismus","Buddhismus","Judentum"],ans:0},
+{cat:"Politik",q:"Was ist der offizielle Sitz des Europaparlaments?",opts:["Straßburg","Luxemburg","Brüssel","Paris"],ans:0},
+{cat:"Politik",q:"Die größte Demokratie der Welt?",opts:["Indien","USA","Brasilien","Indonesien"],ans:0},
+{cat:"Politik",q:"Symbol der US-Demokraten?",opts:["Esel","Elefant","Adler","Bär"],ans:0},
+{cat:"Politik",q:"Wie viele Jahre war Mandela im Gefängnis?",opts:["27","17","37","47"],ans:0},
+{cat:"Politik",q:"Wer ist der aktuelle König von England?",opts:["Charles III","Charles II","William V","George VII"],ans:0},
+{cat:"Kunst",q:"Woher kommt Paddington Bär?",opts:["Peru","Indien","Australien","Afrika"],ans:0},
+{cat:"Kunst",q:"Wer schrieb die Ilias?",opts:["Homer","Virgil","Dante","Platon"],ans:0},
+{cat:"Kunst",q:"In welcher Sprache wurde Don Quixote geschrieben?",opts:["Spanisch","Italienisch","Französisch","Portugiesisch"],ans:0},
+{cat:"Kunst",q:"Wer malte das Mädchen mit dem Perlenohrring?",opts:["Johannes Vermeer","Van Gogh","Rembrandt","Rubens"],ans:0},
+{cat:"Kunst",q:"In welchem Museum ist die Mona Lisa?",opts:["Le Louvre","Uffizien","The Met","Prado"],ans:0},
+{cat:"Kunst",q:"Wie viele Ehefrauen hatte Heinrich VIII.?",opts:["6","3","4","8"],ans:0},
+{cat:"Mathe",q:"Wie viele Seiten hat ein Hexagon?",opts:["6","7","5","8"],ans:0},
+{cat:"Mathe",q:"Drei Fünftel von 100?",opts:["60","5","50","30"],ans:0},
+{cat:"Mathe",q:"Wie viele Jahre hat ein Jahrzehnt?",opts:["10","20","5","100"],ans:0},
+{cat:"Mathe",q:"Wie viele Monate hat ein Jahrhundert?",opts:["1200","12000","120","12"],ans:0},
+{cat:"Musik",q:"Welches Lied endet mit And Many More?",opts:["Happy Birthday","Old Macdonald","Jingle Bells","Auld Lang Syne"],ans:0},
+{cat:"Musik",q:"Welches Lied ist NICHT von den Beatles?",opts:["Like A Rolling Stone","All You Need Is Love","Hey Jude","Let It Be"],ans:0},
+{cat:"Musik",q:"Welche Show machte One Direction berühmt?",opts:["The X Factor","The Voice","American Idol","Got Talent"],ans:0},
+{cat:"Musik",q:"In welcher Gruppe war Beyonce vor ihrer Solokarriere?",opts:["Destiny's Child","Spice Girls","TLC","En Vogue"],ans:0},
+{cat:"Geographie",q:"Hauptstadt von Neuseeland?",opts:["Wellington","Auckland","Christchurch","Hamilton"],ans:0},
+{cat:"Geographie",q:"Mallorca gehört zu welchem Archipel?",opts:["Balearische Inseln","Kanarische Inseln","Azoren","Madeira"],ans:0},
+{cat:"Geographie",q:"Höchster Berg Japans?",opts:["Mount Fuji","Mount Tate","Mount Kita","Mount Haku"],ans:0},
+{cat:"Geographie",q:"Höhe des Mount Everest?",opts:["8849 m","6849 m","7849 m","9849 m"],ans:0},
+{cat:"Unterhaltung",q:"Wer spielte Emily in Emily in Paris?",opts:["Lily Collins","Lily James","Lily Allen","Lily Tomlin"],ans:0},
+{cat:"Unterhaltung",q:"Marshalls Beruf in How I Met Your Mother?",opts:["Anwalt","Architekt","Arzt","Lehrer"],ans:0},
+{cat:"Unterhaltung",q:"Garfields Lieblingsessen?",opts:["Lasagne","Burger","Pizza","Spaghetti"],ans:0},
+{cat:"Unterhaltung",q:"Der Floss-Tanz stammt aus welchem Spiel?",opts:["Fortnite","GTA","Minecraft","Roblox"],ans:0},
+{cat:"Unterhaltung",q:"Welcher Friends-Charakter sagt How You Doin?",opts:["Joey","Ross","Chandler","Phoebe"],ans:0},
+{cat:"Filme",q:"Wo wurden Herr der Ringe gedreht?",opts:["Neuseeland","Island","Kanada","Schottland"],ans:0},
+{cat:"Filme",q:"Wohin flogen die McCallisters in Kevin allein zu Haus?",opts:["Frankreich","England","Italien","Spanien"],ans:0},
+{cat:"Filme",q:"Wer ist Simbas Onkel im König der Löwen?",opts:["Scar","Mufasa","Rafiki","Zazu"],ans:0},
+{cat:"Filme",q:"Daniel Craigs erster Bond-Film?",opts:["Casino Royale","Keine Zeit zu sterben","Skyfall","Spectre"],ans:0},
+{cat:"Filme",q:"In welchem Disney-Film gibt es Mr. Banks?",opts:["Mary Poppins","Aristocats","Cinderella","Dumbo"],ans:0},
+{cat:"Essen",q:"Hauptalkohol im Bloody Mary?",opts:["Wodka","Gin","Rum","Tequila"],ans:0},
+{cat:"Essen",q:"Woraus wird Guacamole gemacht?",opts:["Avocado","Banane","Mango","Papaya"],ans:0},
+{cat:"Essen",q:"Meistkonsumiertes Getränk der Welt nach Wasser?",opts:["Tee","Kaffee","Bier","Saft"],ans:0},
+{cat:"Essen",q:"Wo wurden Hotdogs erfunden?",opts:["Deutschland","Amerika","Österreich","Frankreich"],ans:0},
+{cat:"Tiere",q:"Was können Chamäleons verändern?",opts:["Farbe","Frisur","Größe","Form"],ans:0},
+{cat:"Tiere",q:"Schnellster laufender Vogel?",opts:["Strauß","Emu","Roadrunner","Pinguin"],ans:0},
+{cat:"Geschichte",q:"Wer sagte Veni vidi vici?",opts:["Julius Caesar","De Gaulle","Napoleon","Augustus"],ans:0},
+{cat:"Geschichte",q:"Alexander und Katharina tragen den Titel?",opts:["Der/Die Große","Der/Die Wilde","Der/Die Weise","Der/Die Tapfere"],ans:0},
+{cat:"Geschichte",q:"Welchen Nobelpreis gewann Churchill?",opts:["Literatur","Frieden","Wirtschaft","Chemie"],ans:0},
+{cat:"Technologie",q:"Wo wurde das World Wide Web erfunden?",opts:["Schweiz","USA","Großbritannien","Deutschland"],ans:0},
+{cat:"Technologie",q:"Wann wurde die erste E-Mail verschickt?",opts:["1971","1974","1969","1980"],ans:0},
+{cat:"Technologie",q:"Älteste noch genutzte Programmiersprache?",opts:["FORTRAN","COBOL","BASIC","Pascal"],ans:0}
+]};
+
+const T={en:{setup:'Players',p1:'Player 1 (Bottom)',p2:'Player 2 (Top)',start:"LET'S BUBBLE!",waitingFor:'Waiting for',toAnswer:'to answer...',pressure:'UNDER PRESSURE',starter:'STARTER QUESTION',pressureQ:'UNDER PRESSURE',correct:'CORRECT!',wrong:'WRONG!',winner:'WINNER!',bubble:'The bubble reached the end!',again:'Play Again',home:'New Game',bot:'BubbleBot Analysis',placeholder:'Enter name...',answering:'answering...',winsInARow:'wins in a row!',win:'WIN',wins:'WINS',inARow:'IN A ROW',newRecord:'🎉 NEW RECORD!',milestone:'🏅 MILESTONE!',onFire:'is on FIRE! Can they keep going?',noRecords:'No records yet.<br>Play your first game to get on the board!',bestStreak:'best streak',noQuestions:'No questions logged.',allCorrect:'🎯 Both players answered every question correctly!',answered:'Answered',correctLabel:'Correct',round:'Round',hallOfFame:'🏆 HALL OF FAME',back:'← BACK',continueBtn:'CONTINUE →',postGame:'POST-GAME ANALYSIS',analyzing:'Analyzing your game...',playAgainBot:'PLAY AGAIN →',soundBtn:'🔊 Activate & test sound',accuracy:'accuracy',totalPressure:'Total pressure rounds',maxDanger:'Max bubble danger',soundOk:'✓ Sound active!',cbVerdict:'⚡ Verdict',cbStats:'📊 Stats',cbQuestions:'🔍 Question Breakdown'},
+de:{setup:'Spieler',p1:'Spieler 1 (Unten)',p2:'Spieler 2 (Oben)',start:'LASS ES BUBBELN!',waitingFor:'Warte auf',toAnswer:'zum Antworten...',pressure:'UNTER DRUCK',starter:'STARTFRAGE',pressureQ:'UNTER DRUCK',correct:'RICHTIG!',wrong:'FALSCH!',winner:'GEWONNEN!',bubble:'Die Blase hat das Ende erreicht!',again:'Nochmal spielen',home:'Neues Spiel',bot:'BubbleBot Analyse',placeholder:'Name eingeben...',answering:'antwortet...',winsInARow:'Siege in Folge!',win:'SIEG',wins:'SIEGE',inARow:'IN FOLGE',newRecord:'🎉 NEUER REKORD!',milestone:'🏅 MEILENSTEIN!',onFire:'ist on FIRE! Geht da noch mehr?',noRecords:'Noch keine Einträge.<br>Spielt euer erstes Spiel!',bestStreak:'Beste Serie',noQuestions:'Keine Fragen protokolliert.',allCorrect:'🎯 Beide Spieler haben alles richtig beantwortet!',answered:'Antwort',correctLabel:'Richtig',round:'Runde',hallOfFame:'🏆 HALL OF FAME',back:'← ZURÜCK',continueBtn:'WEITER →',postGame:'SPIELANALYSE',analyzing:'Spiel wird analysiert...',playAgainBot:'NOCHMAL SPIELEN →',soundBtn:'🔊 Sound aktivieren & testen',accuracy:'Genauigkeit',totalPressure:'Druckrunden gesamt',maxDanger:'Max. Blasen-Gefahr',soundOk:'✓ Sound aktiv!',cbVerdict:'⚡ Urteil',cbStats:'📊 Statistiken',cbQuestions:'🔍 Fragenübersicht'}};
+
+let lang='en',p1Name='Player 1',p2Name='Player 2';
+let bubbleX=250,tilt=0,flowSpeed=0,lastTs=null;
+let score1=0,score2=0;
+let currentWinner='',currentLoser='';
+let gameLog=[]; // tracks every answer event for CrossBot
+
+// ── TILT LEVEL SYSTEM ──────────────────────────────────────────
+// tiltLevel: -5 to +5
+// Negative = tilted toward P1 (bubble flows left, P1 in danger)
+// Positive = tilted toward P2 (bubble flows right, P2 in danger)
+// 0 = horizontal, bubble stopped, new starter question
+// Each wrong answer: ±1 tilt step. Each correct: ∓1 step back.
+// Win condition: |tiltLevel| reaches 5
+const MAX_TILT = 5;
+const BASE_SPEED = 2;        // px/sec at tilt level 1
+const SPEED_EXPONENT = 1.8;  // exponential multiplier per level
+const TILT_DEG_PER_LEVEL = 5; // visual degrees per level
+
+let tiltLevel = 0; // -5..+5
+let phase='buzzer',pressureOn=0,currentQ=null,usedQs=[],round=1,animId=null;
+
+function t(k){return(T[lang]||T.en)[k]||k}
+
+function setLang(l){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));
+  document.getElementById('lbl-players').textContent=t('setup');
+  document.getElementById('lbl-p1').textContent=t('p1');
+  document.getElementById('lbl-p2').textContent=t('p2');
+  document.getElementById('btn-start').textContent=t('start');
+  document.getElementById('btn-again').textContent='🔄 '+t('again');
+  document.getElementById('btn-home').textContent='← '+t('home');
+  document.getElementById('btn-bot').textContent='🤖 '+t('bot');
+  document.getElementById('name1').placeholder=t('placeholder');
+  document.getElementById('name2').placeholder=t('placeholder');
+  document.getElementById('lb-title').textContent=t('hallOfFame');
+  document.getElementById('lb-back').textContent=t('back');
+  document.getElementById('btn-continue').textContent=t('continueBtn');
+  document.getElementById('cb-subtitle').textContent=t('postGame');
+  document.getElementById('cb-analyzing').textContent=t('analyzing');
+  document.getElementById('cb-close').textContent=t('playAgainBot');
+  document.getElementById('btn-sound').textContent=t('soundBtn');
+  document.getElementById('btn-hof').textContent=t('hallOfFame');
+  document.getElementById('cb-title-verdict').textContent=t('cbVerdict');
+  document.getElementById('cb-title-stats').textContent=t('cbStats');
+  document.getElementById('cb-title-questions').textContent=t('cbQuestions');
+}
+
+function startGame(){
+  p1Name=document.getElementById('name1').value.trim()||(lang==='de'?'Spieler 1':'Player 1');
+  p2Name=document.getElementById('name2').value.trim()||(lang==='de'?'Spieler 2':'Player 2');
+  document.getElementById('gname1').textContent=p1Name;
+  document.getElementById('gname2').textContent=p2Name;
+  document.getElementById('blabel1').textContent=p1Name;
+  document.getElementById('blabel2').textContent=p2Name;
+  bubbleX=250;flowSpeed=0;tilt=0;tiltLevel=0;if(animId)cancelAnimationFrame(animId);animId=null;phase='buzzer';pressureOn=0;usedQs=[];round=1;gameLog=[];
+  score1=0;score2=0;
+  document.getElementById('score1').textContent='0';
+  document.getElementById('score2').textContent='0';
+  currentQ=pickQ();
+  renderBubble(250,0);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('game').classList.add('active');
+  initAudio(); startMusic();
+  startBuzzerPhase();
+}
+
+function startBuzzerPhase(){
+  phase= pressureOn===0 ? 'buzzer' : 'answering';
+  const label=pressureOn===0?t('starter'):t('pressureQ');
+  const tiltIndicator = tiltLevel===0 ? '' : (tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)) : ' · ◀'.repeat(Math.abs(tiltLevel)));
+  document.getElementById('round-badge').textContent='ROUND '+round+' · '+label+tiltIndicator;
+  setZoneQ(1,currentQ);setZoneQ(2,currentQ);
+  if(pressureOn===0){
+    // Starter: stop flow, show buzzers
+    stopFlow();
+    showZone(1,'buzzer');
+    showZone(2,'buzzer');
+  } else {
+    // Pressure: flow is already running from processResult, just show answers
+    showZone(pressureOn,'answering');
+    showZone(pressureOn===1?2:1,'waiting');
+  }
+}
+
+function setZoneQ(p,q){document.getElementById('qcat'+p).textContent=q.cat;document.getElementById('qtext'+p).textContent=q.q;}
+
+function showZone(p,mode){
+  const buzz=document.getElementById('buzz'+p);
+  const wait=document.getElementById('wait'+p);
+  const answers=document.getElementById('answers'+p);
+  const qbox=document.getElementById('qbox'+p);
+  const badge=document.getElementById('badge'+p);
+  buzz.style.display='none';wait.style.display='none';answers.style.display='none';qbox.style.display='none';badge.classList.remove('show');
+  const isPressure=pressureOn===p;
+  document.getElementById('blabel'+p).classList.toggle('under-pressure',isPressure);
+  if(mode==='buzzer'){buzz.style.display='block';buzz.disabled=false;qbox.style.display='block';}
+  else if(mode==='answering'){qbox.style.display='block';answers.style.display='grid';if(isPressure)badge.classList.add('show');buildAnswers(p,currentQ);}
+  else if(mode==='waiting'){qbox.style.display='block';wait.style.display='block';wait.textContent='...';}
+}
+
+function buildAnswers(p,q){
+  const grid=document.getElementById('answers'+p);grid.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');btn.className='ans-btn';
+    btn.textContent=['A','B','C','D'][i]+'. '+opt;
+    btn.onclick=()=>submitAnswer(p,i,q.ans,grid);
+    grid.appendChild(btn);
+  });
+}
+
+function playerBuzz(p){
+  if(phase!=='buzzer')return;
+  phase='answering';
+  const other=p===1?2:1;
+  document.getElementById('buzz'+other).disabled=true;
+  document.getElementById('buzz'+other).style.display='none';
+  document.getElementById('buzz'+p).style.display='none';
+  document.getElementById('qbox'+other).style.display='block';
+  document.getElementById('wait'+other).style.display='block';
+  document.getElementById('wait'+other).textContent='⏳ '+(p===1?p1Name:p2Name)+' '+t('answering');
+  playBuzzSound();
+  // Bubble stays still while player thinks and answers
+  showZone(p,'answering');
+}
+
+function submitAnswer(p,chosen,correct,grid){
+  grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
+  const ok=chosen===correct;
+  if(!ok)grid.querySelectorAll('.ans-btn')[chosen].classList.add('wrong');
+  if(ok) playCorrectSound(); else playWrongSound();
+  // Log for CrossBot
+  gameLog.push({
+    player: p,
+    name: p===1?p1Name:p2Name,
+    q: currentQ.q,
+    cat: currentQ.cat,
+    chosen: currentQ.opts[chosen],
+    correct: currentQ.opts[currentQ.ans],
+    ok: ok,
+    bubbleX: Math.round(bubbleX),
+    pressureOn: pressureOn,
+    tiltLevel: tiltLevel,
+    round: round
+  });
+  showFeedback(ok);
+  setTimeout(()=>{hideFeedback();processResult(p,ok);},1100);
+}
+
+function processResult(p, ok) {
+  // p = player who just answered (1 or 2)
+  // Positive tiltLevel = danger for P2, negative = danger for P1
+
+  if (pressureOn === 0) {
+    // ── STARTER QUESTION ─────────────────────────────────────
+    // Buzzer winner answered:
+    // Correct → tube tilts toward opponent (opponent is now in danger)
+    // Wrong   → tube tilts toward self (answerer is now in danger)
+    const dangerPlayer = ok ? (p === 1 ? 2 : 1) : p;
+    tiltLevel = dangerPlayer === 2 ? 1 : -1;
+    pressureOn = dangerPlayer;
+    applyTiltLevel();
+    startFlow();
+  } else {
+    // ── PRESSURE QUESTION ────────────────────────────────────
+    // Player under pressure answers:
+    // Correct → one step back toward horizontal
+    // Wrong   → one step further away from horizontal (faster!)
+    const direction = pressureOn === 2 ? 1 : -1; // sign of current tilt
+
+    if (ok) {
+      tiltLevel -= direction; // step back
+    } else {
+      tiltLevel += direction; // step further
+    }
+
+    // Clamp to ±MAX_TILT
+    tiltLevel = Math.max(-MAX_TILT, Math.min(MAX_TILT, tiltLevel));
+
+    if (tiltLevel === 0) {
+      // Back to horizontal — tube levels out, bubble stops, starter question
+      pressureOn = 0;
+      stopFlow();
+    } else {
+      // Keep same pressured player, update speed
+      applyTiltLevel();
+    }
+
+    // No win condition here — game ends when bubble reaches the end of the tube (in flowLoop)
+  }
+
+  updateMusicTension();
+  round++; currentQ = pickQ(); startBuzzerPhase();
+}
+
+function applyTiltLevel() {
+  // Set flow speed and visual tilt based on tiltLevel
+  // tiltLevel > 0: P2 in danger → bubble flows right (positive direction)
+  // tiltLevel < 0: P1 in danger → bubble flows left (negative direction)
+  const sign = Math.sign(tiltLevel);
+  const intensity = Math.abs(tiltLevel);
+  flowSpeed = sign * BASE_SPEED * Math.pow(SPEED_EXPONENT, intensity - 1);
+  tilt = -sign * intensity * TILT_DEG_PER_LEVEL;
+  renderBubble(bubbleX, tilt);
+}
+
+
+// ── CONTINUOUS BUBBLE FLOW ──────────────────────────────────────
+// flowSpeed set by applyTiltLevel(). Loop runs every frame.
+
+function startFlow(){
+  if(animId)cancelAnimationFrame(animId);
+  lastTs=null;
+  flowLoop();
+}
+
+function stopFlow(){
+  if(animId)cancelAnimationFrame(animId);
+  animId=null;
+  flowSpeed=0;
+  tilt=0;
+  renderBubble(bubbleX, 0);
+}
+
+function flowLoop(ts){
+  if(!ts){animId=requestAnimationFrame(flowLoop);return;}
+  if(lastTs && flowSpeed!==0){
+    const dt=(ts-lastTs)/1000;
+    bubbleX += flowSpeed*dt;
+
+    // ── WIN CONDITION: bubble reaches end of tube ──
+    if(bubbleX <= 52){
+      bubbleX=52;
+      renderBubble(bubbleX,tilt);
+      stopFlow();
+      triggerBubbleBurst(52, ()=>endGame(2));
+      return;
+    }
+    if(bubbleX >= 448){
+      bubbleX=448;
+      renderBubble(bubbleX,tilt);
+      stopFlow();
+      triggerBubbleBurst(448, ()=>endGame(1));
+      return;
+    }
+
+    renderBubble(bubbleX,tilt);
+  }
+  lastTs=ts;
+  animId=requestAnimationFrame(flowLoop);
+}
+function renderBubble(x,deg){
+  document.getElementById('the-bubble').setAttribute('cx',x);
+  document.getElementById('bshine').setAttribute('cx',x-6);
+  document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
+  document.getElementById('the-bubble').setAttribute('fill',(x<115||x>385)?'url(#dangerG)':'url(#bubG)');
+}
+
+function pickQ(){
+  const pool=QUESTIONS[lang]||QUESTIONS.en;
+  const avail=pool.filter((_,i)=>!usedQs.includes(i));
+  if(!avail.length){usedQs=[];return pickQ();}
+  const pick=Math.floor(Math.random()*avail.length);
+  const idx=pool.indexOf(avail[pick]);usedQs.push(idx);return pool[idx];
+}
+
+function showFeedback(ok){
+  const el=document.getElementById('feedback-msg'),ov=document.getElementById('feedback-overlay');
+  el.textContent=(ok?'✓ ':'✗ ')+t(ok?'correct':'wrong');
+  el.className='feedback-msg '+(ok?'correct':'wrong');ov.classList.add('show');
+}
+function hideFeedback(){document.getElementById('feedback-overlay').classList.remove('show');}
+
+function endGame(winnerP){
+  stopFlow(); stopMusic();
+  if(winnerP===1) score1++; else score2++;
+  updateScoreDisplay();
+  playWinSound();
+  const name = winnerP===1 ? p1Name : p2Name;
+  const loserName = winnerP===1 ? p2Name : p1Name;
+  currentWinner=name; currentLoser=loserName;
+
+  // Record win, check milestone
+  const milestone = recordWin(name);
+  // Reset loser streak
+  if(reigning && reigning.name === loserName) reigning = null;
+
+  // Update streak badges
+  updateStreakBadge(1); updateStreakBadge(2);
+
+  const wins = reigning ? reigning.wins : 1;
+  const tier = getTier(wins);
+  const tierStr = tier.icon ? tier.icon + ' ' + tier.name : '';
+
+  document.getElementById('res-title').textContent = t('winner');
+  document.getElementById('res-winner').textContent = name;
+  document.getElementById('res-sub').textContent = t('bubble');
+  document.getElementById('res-scores').textContent =
+    (wins > 1 ? '🔥 '+wins+' '+t('winsInARow') : '') +
+    (tierStr ? '  ' + tierStr : '');
+  document.getElementById('result-overlay').classList.add('show');
+  document.getElementById('zone-p'+winnerP).classList.add('winner-flash');
+
+  // Show milestone popup after short delay
+  if(milestone){
+    const lb = loadLeaderboard();
+    const entry = lb.find(e=>e.name===name);
+    const isRecord = entry && entry.best === wins;
+    setTimeout(()=>{
+      document.getElementById('result-overlay').classList.remove('show');
+      showStreakModal(name, wins, milestone, isRecord);
+    }, 1800);
+  }
+}
+
+function updateScoreDisplay(){
+  const s1=document.getElementById('score1');
+  const s2=document.getElementById('score2');
+  s1.textContent=score1;
+  s2.textContent=score2;
+  s1.classList.remove('pop'); void s1.offsetWidth; s1.classList.add('pop');
+  s2.classList.remove('pop'); void s2.offsetWidth; s2.classList.add('pop');
+}
+
+function playAgain(){
+  document.getElementById('result-overlay').classList.remove('show');
+  document.querySelectorAll('.zone').forEach(z=>z.classList.remove('winner-flash'));
+  bubbleX=250;flowSpeed=0;tilt=0;tiltLevel=0;if(animId)cancelAnimationFrame(animId);animId=null;phase='buzzer';pressureOn=0;usedQs=[];round=1;gameLog=[];
+  currentQ=pickQ();renderBubble(250,0);initAudio();startMusic();startBuzzerPhase();
+}
+
+function goHome(){
+  score1=0;score2=0;reigning=null;
+  document.getElementById('result-overlay').classList.remove('show');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('setup').classList.add('active');
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIO ENGINE (Web Audio API - no files needed)
+// ═══════════════════════════════════════════════════════════════
+let audioCtx = null;
+let musicNodes = {};
+let musicPlaying = false;
+let musicEnabled = true;
+
+function initAudio(){
+  // AudioContext is created by unlockAudio() on first touch.
+  // This just ensures resume() is called again if somehow still suspended.
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+}
+
+// Unlock audio on first ANY touch — catches iOS quirk where
+// AudioContext is only truly unlocked by a direct user interaction
+// iOS Audio unlock — must happen inside a direct user gesture
+// Strategy: create + resume AudioContext on very first touch/click anywhere
+function unlockAudio(){
+  try {
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+    // Play a silent buffer to fully unlock on iOS
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch(e){}
+}
+// Fire on every possible user interaction
+document.addEventListener('touchstart', unlockAudio, {passive:true});
+document.addEventListener('touchend',   unlockAudio, {passive:true});
+document.addEventListener('click',      unlockAudio);
+
+// ── SOUND EFFECTS ────────────────────────────────────────────
+function playBuzzSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(440, t+0.08);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+  osc.start(t); osc.stop(t+0.2);
+}
+
+function playCorrectSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  [523, 659, 784].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t + i*0.09);
+    gain.gain.setValueAtTime(0.0, t + i*0.09);
+    gain.gain.linearRampToValueAtTime(0.25, t + i*0.09 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + i*0.09 + 0.25);
+    osc.start(t + i*0.09); osc.stop(t + i*0.09 + 0.3);
+  });
+}
+
+function playWrongSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const dist = audioCtx.createWaveShaper();
+  // Distortion curve for buzzer effect
+  const curve = new Float32Array(256);
+  for(let i=0;i<256;i++) curve[i] = i < 128 ? -1 : 1;
+  dist.curve = curve;
+  osc.connect(dist); dist.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(180, t);
+  osc.frequency.exponentialRampToValueAtTime(80, t+0.4);
+  gain.gain.setValueAtTime(0.25, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t+0.5);
+  osc.start(t); osc.stop(t+0.5);
+}
+
+function playWinSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const melody = [523,659,784,1047];
+  melody.forEach((freq,i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t+i*0.12);
+    gain.gain.setValueAtTime(0.0, t+i*0.12);
+    gain.gain.linearRampToValueAtTime(0.3, t+i*0.12+0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+i*0.12+0.5);
+    osc.start(t+i*0.12); osc.stop(t+i*0.12+0.55);
+  });
+}
+
+// ── BACKGROUND MUSIC (real audio track via AudioContext) ─────
+// Music loaded from #music-data element
+let musicBuffer = null;
+let musicSource = null;
+let musicGain = null;
+let musicLoaded = false;
+
+async function loadMusicBuffer() {
+  // Music disabled — no external file
+  musicLoaded = false;
+  return false;
+}
+
+async function startMusic() {
+  if(!musicEnabled || musicPlaying) return;
+  if(!audioCtx) return;
+  if(audioCtx.state === 'suspended') await audioCtx.resume();
+  if(!musicLoaded) {
+    const ok = await loadMusicBuffer();
+    if(!ok) return;
+  }
+  if(musicSource) { try{ musicSource.stop(); }catch(e){} }
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.75;
+  musicGain.connect(audioCtx.destination);
+  musicSource = audioCtx.createBufferSource();
+  musicSource.buffer = musicBuffer;
+  musicSource.loop = true;
+  musicSource.connect(musicGain);
+  musicSource.start(0);
+  musicPlaying = true;
+}
+
+function stopMusic() {
+  if(musicSource) {
+    try { musicSource.stop(); } catch(e) {}
+    musicSource = null;
+  }
+  musicPlaying = false;
+}
+
+function updateMusicTension() {
+  if(musicSource) {
+    const intensity = Math.abs(tiltLevel);
+    musicSource.playbackRate.value = 1 + (intensity * 0.04);
+  }
+}
+
+// ── MUSIC TOGGLE BUTTON ──────────────────────────────────────
+function toggleMusic(){
+  musicEnabled = !musicEnabled;
+  const btn = document.getElementById('music-toggle');
+  initAudio();
+  if(musicEnabled){
+    btn.textContent='🔊';
+    if(pressureOn!==0) startMusic();
+  } else {
+    btn.textContent='🔇';
+    stopMusic();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// STREAK & LEADERBOARD SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// Tiers: minimum wins to reach
+const TIERS = [
+  { min:100, name:'DIAMOND', icon:'💎', color:'#a8edff', border:'rgba(168,237,255,0.6)' },
+  { min:50,  name:'GOLD',    icon:'🥇', color:'var(--gold)', border:'rgba(255,215,0,0.6)' },
+  { min:25,  name:'SILVER',  icon:'🥈', color:'#ccc', border:'rgba(200,200,200,0.5)' },
+  { min:10,  name:'BRONZE',  icon:'🥉', color:'#cd7f32', border:'rgba(205,127,50,0.5)' },
+  { min:1,   name:'',        icon:'',   color:'var(--muted)', border:'transparent' },
+];
+
+function getTier(wins){
+  return TIERS.find(t => wins >= t.min) || TIERS[TIERS.length-1];
+}
+
+// currentStreak tracks the "reigning champion" across rounds
+// { name, wins } — winner stays, loser is replaced by new challenger
+let reigning = null; // { name: string, wins: number }
+
+function loadLeaderboard(){
+  try { return JSON.parse(localStorage.getItem('bubble_lb') || '[]'); }
+  catch { return []; }
+}
+
+function saveLeaderboard(lb){
+  try { localStorage.setItem('bubble_lb', JSON.stringify(lb)); }
+  catch {}
+}
+
+function recordWin(playerName){
+  // Update reigning champion
+  if(!reigning || reigning.name !== playerName){
+    reigning = { name: playerName, wins: 1 };
+  } else {
+    reigning.wins++;
+  }
+
+  // Update all-time leaderboard
+  const lb = loadLeaderboard();
+  const existing = lb.find(e => e.name === playerName);
+  if(existing){
+    if(reigning.wins > existing.best) existing.best = reigning.wins;
+    existing.total = (existing.total||0) + 1;
+  } else {
+    lb.push({ name: playerName, best: reigning.wins, total: 1 });
+  }
+  saveLeaderboard(lb);
+
+  // Check for tier milestone
+  return checkTierMilestone(reigning.wins);
+}
+
+function checkTierMilestone(wins){
+  // Only fire on exact milestone numbers
+  const milestones = [10, 25, 50, 100];
+  if(milestones.includes(wins)){
+    return getTier(wins);
+  }
+  return null;
+}
+
+function showStreakModal(name, wins, tier, isNewRecord){
+  const modal = document.getElementById('streak-modal');
+  document.getElementById('sm-icon').textContent = tier.icon;
+  document.getElementById('sm-tier').textContent = tier.name;
+  document.getElementById('sm-tier').style.color = tier.color;
+  document.getElementById('sm-wins').textContent = wins + (wins===1?' '+t('win'):' '+t('wins')) + ' ' + t('inARow');
+  
+  const badge = document.getElementById('sm-new-badge');
+  badge.textContent = isNewRecord ? t('newRecord') : t('milestone');
+  badge.style.background = tier.color.startsWith('var') ? 'rgba(255,215,0,0.15)' : 'rgba(168,237,255,0.1)';
+  badge.style.color = tier.color;
+  badge.style.border = '1px solid ' + tier.border;
+  
+  document.getElementById('streak-card').style.borderColor = tier.border;
+  document.getElementById('streak-card').style.boxShadow = '0 0 40px ' + tier.border;
+  document.getElementById('sm-msg').textContent = name + ' ' + t('onFire');
+  modal.classList.add('show');
+}
+
+function closeStreakModal(){
+  document.getElementById('streak-modal').classList.remove('show');
+}
+
+// ── LEADERBOARD SCREEN ────────────────────────────────────────
+function openLeaderboard(){
+  renderLeaderboard();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('leaderboard').classList.add('active');
+}
+
+function closeLeaderboard(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('setup').classList.add('active');
+}
+
+function renderLeaderboard(){
+  const lb = loadLeaderboard();
+  const container = document.getElementById('lb-content');
+  
+  if(lb.length === 0){
+    container.innerHTML = '<div class="empty-lb">'+t('noRecords')+'</div>';
+    return;
+  }
+
+  // Sort by best streak descending
+  lb.sort((a,b) => b.best - a.best);
+
+  // Group into tier sections
+  const tierGroups = [
+    { tier: TIERS[0], entries: lb.filter(e=>e.best>=100) },
+    { tier: TIERS[1], entries: lb.filter(e=>e.best>=50 && e.best<100) },
+    { tier: TIERS[2], entries: lb.filter(e=>e.best>=25 && e.best<50) },
+    { tier: TIERS[3], entries: lb.filter(e=>e.best>=10 && e.best<25) },
+    { tier: {name:'CHALLENGERS', icon:'⚡', color:'var(--muted)'}, entries: lb.filter(e=>e.best<10) },
+  ].filter(g=>g.entries.length>0);
+
+  let html = '';
+  let globalRank = 1;
+
+  for(const group of tierGroups){
+    html += `<div class="tier-section">
+      <div class="tier-header">
+        <span>${group.tier.icon}</span>
+        <span style="color:${group.tier.color}">${group.tier.name}</span>
+        <span style="font-size:.7rem">${group.tier.min ? '('+group.tier.min+'+ wins)' : ''}</span>
+      </div>`;
+    
+    for(const entry of group.entries){
+      const tier = getTier(entry.best);
+      const rankClass = globalRank===1?'top1':globalRank===2?'top2':globalRank===3?'top3':'';
+      const rankIcon = globalRank===1?'👑':globalRank===2?'🥈':globalRank===3?'🥉':'#'+globalRank;
+      html += `<div class="lb-entry ${rankClass}">
+        <div class="lb-rank">${rankIcon}</div>
+        <div class="lb-badge">${tier.icon}</div>
+        <div class="lb-name">${escapeHtml(entry.name)}</div>
+        <div style="text-align:right">
+          <div class="lb-wins">${entry.best}</div>
+          <div class="lb-wins-label">${t('bestStreak')}</div>
+        </div>
+      </div>`;
+      globalRank++;
+    }
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── STREAK UI IN GAME ─────────────────────────────────────────
+function updateStreakBadge(player){
+  const wins = reigning && reigning.name === (player===1?p1Name:p2Name) ? reigning.wins : 0;
+  const tier = getTier(wins);
+  const el = document.getElementById('streak'+player);
+  if(!el) return;
+  if(wins > 0){
+    el.style.display='flex';
+    el.querySelector('.streak-icon').textContent = tier.icon || '🔥';
+    el.querySelector('.streak-count').textContent = wins;
+  } else {
+    el.style.display='none';
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// BUBBLE BOT (AI Post-Game Analysis)
+// ═══════════════════════════════════════════════════════════════
+
+async function openCrossbot(winnerName, loserName) {
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('crossbot-overlay').classList.add('show');
+
+  // Render stats immediately
+  renderCrossbotStats(winnerName, loserName);
+  renderCrossbotQuestions();
+
+  // Call Claude API for verdict
+  await fetchCrossbotVerdict(winnerName, loserName);
+}
+
+function closeCrossbot() {
+  document.getElementById('crossbot-overlay').classList.remove('show');
+  // Go to play again state — reset and show game
+  document.getElementById('result-overlay').classList.remove('show');
+  gameLog=[];
+  bubbleX=250;flowSpeed=0;tilt=0;
+  if(animId)cancelAnimationFrame(animId);animId=null;
+  phase='buzzer';pressureOn=0;tiltLevel=0;usedQs=[];round=1;
+  currentQ=pickQ();renderBubble(250,0);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('game').classList.add('active');
+  document.querySelectorAll('.zone').forEach(z=>z.classList.remove('winner-flash'));
+  initAudio();startMusic();
+  startBuzzerPhase();
+}
+
+function renderCrossbotStats(winner, loser) {
+  const p1Events = gameLog.filter(e=>e.name===p1Name);
+  const p2Events = gameLog.filter(e=>e.name===p2Name);
+  const p1Correct = p1Events.filter(e=>e.ok).length;
+  const p2Correct = p2Events.filter(e=>e.ok).length;
+  const p1Total = p1Events.length;
+  const p2Total = p2Events.length;
+
+  // Most pressure: count rounds where each was under pressure
+  const p1Pressure = gameLog.filter(e=>e.pressureOn===1).length;
+  const p2Pressure = gameLog.filter(e=>e.pressureOn===2).length;
+
+  // Max bubble danger (closest to edge)
+  const maxDanger1 = gameLog.length ? Math.min(...gameLog.map(e=>e.bubbleX)) : 250;
+  const maxDanger2 = gameLog.length ? Math.max(...gameLog.map(e=>e.bubbleX)) : 250;
+  const bubblePeak = Math.round(Math.max(250-maxDanger1, maxDanger2-250));
+
+  const pct = (c,t) => t===0 ? '–' : Math.round(c/t*100)+'%';
+
+  document.getElementById('cb-stats').innerHTML = `
+    <div class="cb-stat">
+      <div class="cb-stat-val" style="color:var(--blue)">${pct(p1Correct,p1Total)}</div>
+      <div class="cb-stat-lbl">${p1Name} ${t('accuracy')}</div>
+    </div>
+    <div class="cb-stat">
+      <div class="cb-stat-val" style="color:#ff6b6b">${pct(p2Correct,p2Total)}</div>
+      <div class="cb-stat-lbl">${p2Name} ${t('accuracy')}</div>
+    </div>
+    <div class="cb-stat">
+      <div class="cb-stat-val">${p1Pressure+p2Pressure}</div>
+      <div class="cb-stat-lbl">${t('totalPressure')}</div>
+    </div>
+    <div class="cb-stat">
+      <div class="cb-stat-val">${bubblePeak}px</div>
+      <div class="cb-stat-lbl">${t('maxDanger')}</div>
+    </div>
+  `;
+}
+
+function renderCrossbotQuestions() {
+  const container = document.getElementById('cb-questions');
+  if(!gameLog.length){ container.innerHTML='<div style="color:var(--muted);font-size:.85rem">'+t('noQuestions')+'</div>'; return; }
+
+  const wrong = gameLog.filter(e=>!e.ok);
+  if(!wrong.length){
+    container.innerHTML='<div style="color:#00ff88;font-size:.85rem">'+t('allCorrect')+'</div>';
+    return;
+  }
+
+  container.innerHTML = wrong.map(e=>`
+    <div class="cb-q-row">
+      <div class="cb-q-icon">✗</div>
+      <div class="cb-q-body">
+        <div class="cb-q-cat">${e.cat}</div>
+        <div class="cb-q-text">${e.q}</div>
+        <div class="cb-q-answer wrong">${t('answered')}: ${e.chosen}</div>
+        <div class="cb-q-answer correct">${t('correctLabel')}: ${e.correct}</div>
+        <div class="cb-q-player">${e.name} · ${t('round')} ${e.round}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function fetchCrossbotVerdict(winner, loser) {
+  const verdictEl = document.getElementById('cb-verdict');
+
+  // Build summary for Claude
+  const p1Events = gameLog.filter(e=>e.name===p1Name);
+  const p2Events = gameLog.filter(e=>e.name===p2Name);
+  const p1Correct = p1Events.filter(e=>e.ok).length;
+  const p2Correct = p2Events.filter(e=>e.ok).length;
+  const wrongAnswers = gameLog.filter(e=>!e.ok).map(e=>`${e.name} got "${e.q}" wrong (answered "${e.chosen}", correct was "${e.correct}")`);
+  const totalRounds = round;
+  const pressureRoundsP1 = gameLog.filter(e=>e.pressureOn===1).length;
+  const pressureRoundsP2 = gameLog.filter(e=>e.pressureOn===2).length;
+
+  const prompt = `You are BubbleBot, a witty, punchy post-game analyst for a quiz game called "THE BUBBLE". Two players just finished a game.
+
+Game summary:
+- Winner: ${winner}
+- Loser: ${loser}  
+- Total rounds played: ${totalRounds}
+- ${p1Name}: ${p1Correct}/${p1Events.length} correct, was under pressure for ${pressureRoundsP1} rounds
+- ${p2Name}: ${p2Correct}/${p2Events.length} correct, was under pressure for ${pressureRoundsP2} rounds
+- Wrong answers: ${wrongAnswers.length===0 ? 'none!' : wrongAnswers.join('; ')}
+
+Write a SHORT post-game verdict (max 4 sentences). Be direct, slightly cheeky, mention specific wrong answers if any. Highlight who performed under pressure. End with one sharp one-liner. Respond in ${lang==='de'?'German':'English'}.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(b=>b.text||'').join('') || 'Analysis unavailable.';
+    verdictEl.innerHTML = `<div class="cb-verdict">${text}</div>`;
+  } catch(err) {
+    verdictEl.innerHTML = `<div class="cb-verdict" style="color:var(--muted)">${lang==='de' ? 'BubbleBot ist offline. Aber '+winner+' hat klar gewonnen – das zählt!' : 'BubbleBot is offline. But '+winner+' clearly won – that\'s all that matters.'}</div>`;
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// BUBBLE BURST EFFECT
+// ═══════════════════════════════════════════════════════════════
+
+function triggerBubbleBurst(tubeEndX, callback) {
+  // Find pixel position of the tube end on screen
+  const svg = document.getElementById('bubble-svg');
+  const rect = svg.getBoundingClientRect();
+  const svgWidth = 500; // viewBox width
+  const scaleX = rect.width / svgWidth;
+  const scaleY = rect.height / 120; // viewBox height
+
+  // Tube center Y is at 60 in viewBox
+  const screenX = rect.left + tubeEndX * scaleX;
+  const screenY = rect.top + 60 * scaleY;
+
+  playBurstSound();
+  flashScreen();
+  spawnParticles(screenX, screenY);
+  spawnRings(screenX, screenY);
+
+  // Hide the bubble during burst
+  document.getElementById('the-bubble').style.opacity = '0';
+  document.getElementById('bshine').style.opacity = '0';
+
+  // Call endGame after animation
+  setTimeout(() => {
+    document.getElementById('the-bubble').style.opacity = '1';
+    document.getElementById('bshine').style.opacity = '1';
+    callback();
+  }, 900);
+}
+
+function flashScreen() {
+  const el = document.getElementById('screen-flash');
+  el.classList.remove('flash');
+  void el.offsetWidth; // reflow
+  el.classList.add('flash');
+}
+
+function spawnParticles(cx, cy) {
+  const overlay = document.getElementById('burst-overlay');
+  overlay.innerHTML = '';
+  const colors = ['#ff2222','#ff6600','#ffcc00','#ff4444','#ff9900','#ffffff','#ff0000'];
+  const count = 28;
+
+  for(let i = 0; i < count; i++){
+    const el = document.createElement('div');
+    el.className = 'burst-particle';
+    const angle = (i / count) * Math.PI * 2;
+    const dist = 60 + Math.random() * 120;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    const size = 6 + Math.random() * 14;
+    const dur = 0.5 + Math.random() * 0.5;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    el.style.cssText = `
+      left:${cx}px; top:${cy}px;
+      width:${size}px; height:${size}px;
+      background:${color};
+      --tx:${tx}px; --ty:${ty}px;
+      --dur:${dur}s;
+      margin-left:${-size/2}px; margin-top:${-size/2}px;
+    `;
+    overlay.appendChild(el);
+  }
+
+  // Clear after animation
+  setTimeout(() => overlay.innerHTML = '', 1200);
+}
+
+function spawnRings(cx, cy) {
+  const overlay = document.getElementById('burst-overlay');
+  const ringColors = ['#ff2222', '#ffaa00', '#ffffff'];
+
+  ringColors.forEach((color, i) => {
+    const ring = document.createElement('div');
+    ring.className = 'burst-ring';
+    const size = 20 + i * 10;
+    ring.style.cssText = `
+      left:${cx}px; top:${cy}px;
+      width:${size}px; height:${size}px;
+      --ring-color:${color};
+      animation-delay:${i * 0.08}s;
+    `;
+    overlay.appendChild(ring);
+  });
+}
+
+// ── BURST SOUND ───────────────────────────────────────────────
+function playBurstSound() {
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  // Deep thud
+  const thud = audioCtx.createOscillator();
+  const thudGain = audioCtx.createGain();
+  thud.connect(thudGain); thudGain.connect(audioCtx.destination);
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(120, t);
+  thud.frequency.exponentialRampToValueAtTime(30, t+0.4);
+  thudGain.gain.setValueAtTime(0.6, t);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, t+0.5);
+  thud.start(t); thud.stop(t+0.5);
+
+  // Crack/pop — noise burst
+  const bufSize = audioCtx.sampleRate * 0.12;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufSize);
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.8, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t+0.15);
+  noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+  noise.start(t); noise.stop(t+0.15);
+
+  // Rising whine before pop
+  const whine = audioCtx.createOscillator();
+  const whineGain = audioCtx.createGain();
+  whine.connect(whineGain); whineGain.connect(audioCtx.destination);
+  whine.type = 'sawtooth';
+  whine.frequency.setValueAtTime(300, t-0.15);
+  whine.frequency.exponentialRampToValueAtTime(1800, t);
+  whineGain.gain.setValueAtTime(0.0, t-0.15);
+  whineGain.gain.linearRampToValueAtTime(0.3, t);
+  whineGain.gain.exponentialRampToValueAtTime(0.001, t+0.05);
+  whine.start(Math.max(0, t-0.15)); whine.stop(t+0.1);
+}
+
+
+function testSound(btn){
+  try {
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    audioCtx.resume().then(()=>{
+      // Play an audible test beep so user knows it works
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.4);
+      musicEnabled = true;
+      document.getElementById('music-toggle').textContent = '🔊';
+      // Visual feedback
+      btn.textContent = t('soundOk');
+      btn.style.borderColor = '#00ff88';
+      btn.style.color = '#00ff88';
+    });
+  } catch(e) {
+    alert('Sound konnte nicht aktiviert werden: ' + e.message);
+  }
+}
+
+window.addEventListener('load',()=>setLang('de'));
+</script>
+<!-- ═══ LEADERBOARD SCREEN ═══ -->
+<div class="screen" id="leaderboard">
+  <div class="lb-header">
+    <div class="lb-title" id="lb-title">🏆 HALL OF FAME</div>
+    <button class="lb-back" onclick="closeLeaderboard()" id="lb-back">← BACK</button>
+  </div>
+  <div id="lb-content" style="padding:0 20px 20px;"></div>
+</div>
+
+<!-- ═══ STREAK MILESTONE MODAL ═══ -->
+<div id="streak-modal">
+  <div class="streak-card" id="streak-card">
+    <div class="streak-tier-icon" id="sm-icon">🥉</div>
+    <div class="streak-new-badge" id="sm-new-badge">NEW RANK!</div>
+    <div class="streak-tier-name" id="sm-tier">BRONZE</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--muted);letter-spacing:.1em" id="sm-wins">10 WINS</div>
+    <div class="streak-msg" id="sm-msg">Keep the streak alive!</div>
+  </div>
+  <button class="btn-continue" id="btn-continue" onclick="closeStreakModal()">CONTINUE →</button>
+</div>
+
+
+<!-- ═══ CROSSBOT OVERLAY ═══ -->
+<div id="crossbot-overlay">
+  <div class="cb-header">
+    <div class="cb-avatar">🤖</div>
+    <div>
+      <div class="cb-title">BUBBLE BOT</div>
+      <div class="cb-subtitle" id="cb-subtitle">POST-GAME ANALYSIS</div>
+    </div>
+  </div>
+
+  <!-- AI Verdict -->
+  <div class="cb-card">
+    <div class="cb-card-title" id="cb-title-verdict">⚡ Verdict</div>
+    <div id="cb-verdict">
+      <div class="cb-verdict-loading">
+        <div class="cb-spinner"></div>
+        <span id="cb-analyzing">Analyzing your game...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="cb-card">
+    <div class="cb-card-title" id="cb-title-stats">📊 Stats</div>
+    <div class="cb-stats" id="cb-stats"></div>
+  </div>
+
+  <!-- Question breakdown -->
+  <div class="cb-card">
+    <div class="cb-card-title" id="cb-title-questions">🔍 Question Breakdown</div>
+    <div id="cb-questions"></div>
+  </div>
+
+  <button class="cb-close" id="cb-close" onclick="closeCrossbot()">PLAY AGAIN →</button>
+</div>
+
+</body></html>
