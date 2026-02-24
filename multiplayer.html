@@ -380,7 +380,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div class="answers-grid" id="answers2" style="display:none"></div>
     <div class="wait-msg" id="wait2" style="display:none"></div>
-    <button class="buzzer-btn p2-btn" id="buzz2" onclick="playerBuzz(2)" style="display:none">BUZZ!</button>
+    <button class="buzzer-btn p2-btn" id="buzz2" onclick="ol_mode && ol_role==='guest' ? ol_guestSend({type:'buzz',id:Date.now()}) : playerBuzz(2)" style="display:none">BUZZ!</button>
   </div>
 
   <div class="middle">
