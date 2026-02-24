@@ -1870,6 +1870,11 @@ function ol_applyState(state){
       }
     }
   }
+  // Safety net: always show answers if guest needs to answer
+  if(phase==='answering' && pressureOn===2 && currentQ){
+    const g=document.getElementById('answers2');
+    if(!g.querySelector('.ans-btn')){ ol_buildGuestAnswers(currentQ); g.style.display='grid'; }
+  }
 }
 
 function ol_buildGuestAnswers(q){
