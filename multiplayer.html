@@ -1848,7 +1848,7 @@ function ol_applyState(state){
   const qChanged=state.q&&(!currentQ||currentQ.q!==state.q.q);
   if(qChanged){ currentQ=state.q; setZoneQ(1,currentQ); setZoneQ(2,currentQ); }
   // Phase
-  const phaseChanged=state.phase!==ol_guestPhase||state.pressureOn!==ol_guestPressure||qChanged;
+  const phaseChanged=state.phase!==ol_guestPhase||state.pressureOn!==ol_guestPressure||qChanged||(state.phase==='answering'&&state.pressureOn===2&&document.getElementById('answers2').innerHTML==='');
   if(phaseChanged){
     ol_guestPhase=state.phase; ol_guestPressure=state.pressureOn;
     phase=state.phase; pressureOn=state.pressureOn||0;
