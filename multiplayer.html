@@ -31,19 +31,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #game{flex-direction:column}
 .zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;position:relative;transition:background .3s}
 .zone.p2{transform:rotate(180deg)}
-/* ── GUEST ONLINE VIEW ── */
-#game.guest-view .zone.p2 {
-  transform: none;
-  order: 2;
-}
-#game.guest-view .zone.p1 {
-  transform: rotate(180deg);
-  order: 0;
-}
-#game.guest-view .middle {
-  order: 1;
-}
-
 @keyframes dangerFlash{0%,100%{background:transparent}50%{background:rgba(255,59,59,.15)}}
 @keyframes winFlash{0%,100%{background:transparent}50%{background:rgba(255,215,0,.15)}}
 .zone.winner-flash{animation:winFlash .6s ease}
@@ -56,8 +43,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .q-category{font-size:.6rem;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
 .q-text{font-size:clamp(.82rem,2.4vw,1.1rem);font-weight:600;line-height:1.4;min-height:38px}
 .answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:480px;margin-top:8px}
-.ans-btn{background:var(--surface2);border:1px solid rgba(255,255,255,0.08);outline:none;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;user-select:none;-webkit-focus-ring-color:transparent;border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
-.ans-btn:active{transform:scale(.97)}.ans-btn:focus{outline:none;border-color:rgba(255,255,255,0.08)}.ans-btn:focus-visible{outline:none;border-color:rgba(255,255,255,0.08)}
+.ans-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:clamp(.72rem,1.9vw,.88rem);cursor:pointer;transition:all .15s;text-align:left;line-height:1.3}
+.ans-btn:active{transform:scale(.97)}
 .ans-btn:hover{border-color:var(--blue);background:rgba(0,212,255,.08)}
 .ans-btn.correct{border-color:#00ff88;background:rgba(0,255,136,.12);color:#00ff88}
 .ans-btn.wrong{border-color:var(--red);background:rgba(255,59,59,.12);color:var(--red)}
@@ -322,24 +309,43 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 }
 
 @media(max-height:700px){.q-box{padding:8px 12px}.answers-grid{gap:5px}.ans-btn{padding:7px 5px}.buzzer-btn{padding:10px 28px;font-size:1.4rem}.player-name{font-size:1.1rem}}
+
+
+/* ── GUEST VIEW ── */
+#game.guest-view .zone.p2 {
+  transform: none;
+  order: 2;
+}
+#game.guest-view .zone.p1 {
+  transform: rotate(180deg);
+  order: 0;
+}
+#game.guest-view .middle {
+  order: 1;
+}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <div class="screen active" id="setup">
-  <div style="text-align:center;margin-bottom:32px">
+  <div style="text-align:center">
     <div class="logo">THE BUBBLE</div>
-    <div class="logo-sub">® Online Edition</div>
+    <div class="logo-sub">® Party Edition</div>
   </div>
-  <button onclick="ol_open()"
-    style="font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:600;
-    background:linear-gradient(135deg,rgba(255,180,0,0.15),rgba(255,140,0,0.1));
-    border:1px solid rgba(255,180,0,0.4);
-    color:#ffb400;padding:16px 28px;border-radius:20px;cursor:pointer;
-    width:100%;max-width:400px;">
-    🌐 Online gegen Freund spielen
-  </button>
+  <div class="setup-card">
+    <h2 id="lbl-players">Players</h2>
+    <div class="player-inputs">
+      <div class="input-row">
+        <div class="input-label" id="lbl-p1">Player 1 (Bottom)</div>
+        <input class="game-input" id="name1" type="text" placeholder="Enter name..." maxlength="16">
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="input-row">
+        <div class="input-label" id="lbl-p2">Player 2 (Top)</div>
+        <input class="game-input" id="name2" type="text" placeholder="Enter name..." maxlength="16">
+      </div>
+    </div>
+  </div>
   <button onclick="testSound()" style="font-family:'DM Sans',sans-serif;font-size:.9rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--blue);padding:10px 28px;border-radius:20px;cursor:pointer;width:100%;max-width:400px;">
     🔊 Sound aktivieren &amp; testen
   </button>
@@ -347,6 +353,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <button class="lang-btn active" onclick="setLang('en')">EN</button>
     <button class="lang-btn" onclick="setLang('de')">DE</button>
   </div>
+  <button onclick="ol_open()" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.4);color:var(--blue);padding:12px 28px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:1rem;cursor:pointer;margin-bottom:8px;width:100%;">🌐 Online gegen Freund spielen</button>
+  <button class="btn-start" onclick="startGame()" id="btn-start">LET'S BUBBLE!</button>
+  <button onclick="openLeaderboard()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;background:none;border:none;color:var(--muted);cursor:pointer;letter-spacing:.05em;padding:4px 0;">🏆 Hall of Fame</button>
 </div>
 
 <div class="screen" id="game">
@@ -364,7 +373,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
     <div class="answers-grid" id="answers2" style="display:none"></div>
     <div class="wait-msg" id="wait2" style="display:none"></div>
-    <button class="buzzer-btn p2-btn" id="buzz2" onclick="ol_mode && ol_role==='guest' ? ol_guestSend({type:'buzz',id:Date.now()}) : playerBuzz(2)" style="display:none">BUZZ!</button>
+    <button class="buzzer-btn p2-btn" id="buzz2" onclick="playerBuzz(2)" style="display:none">BUZZ!</button>
   </div>
 
   <div class="middle">
@@ -680,10 +689,6 @@ function startGame(){
 }
 
 function startBuzzerPhase(){
-  // Clear all answer grids for new question
-  document.getElementById('answers1').innerHTML = '';
-  document.getElementById('answers2').innerHTML = '';
-  if(typeof ol_lastBuiltQ !== 'undefined') ol_lastBuiltQ = null;
   phase= pressureOn===0 ? 'buzzer' : 'answering';
   const label=pressureOn===0?t('starter'):t('pressureQ');
   const tiltIndicator = tiltLevel===0 ? '' : (tiltLevel>0?' · ▶'.repeat(Math.abs(tiltLevel)) : ' · ◀'.repeat(Math.abs(tiltLevel)));
@@ -701,7 +706,7 @@ function startBuzzerPhase(){
   }
 }
 
-function setZoneQ(p,q){if(!q)return;document.getElementById('qcat'+p).textContent=q.cat||'';document.getElementById('qtext'+p).textContent=q.q||'';}
+function setZoneQ(p,q){document.getElementById('qcat'+p).textContent=q.cat;document.getElementById('qtext'+p).textContent=q.q;}
 
 function showZone(p,mode){
   const buzz=document.getElementById('buzz'+p);
@@ -718,28 +723,18 @@ function showZone(p,mode){
 }
 
 function buildAnswers(p,q){
-  if(!q) return;
-  const grid=document.getElementById('answers'+p);
-  grid.innerHTML=''; // always clear first
-  // If guest and this is their zone, use guest version
-  if(ol_mode && ol_role==='guest' && p===2){ ol_buildGuestAnswers(q); return; }
+  const grid=document.getElementById('answers'+p);grid.innerHTML='';
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
-    btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
+    btn.onclick=()=>submitAnswer(p,i,q.ans,grid);
     grid.appendChild(btn);
   });
 }
 
 function playerBuzz(p){
-  // Online guest: send buzz event to host instead of running locally
-  if(ol_mode && ol_role === 'guest'){
-    if(p === 2) ol_guestSend({type:'buzz',id:Date.now()});
-    return;
-  }
   if(phase!=='buzzer')return;
   phase='answering';
-  pressureOn = p; // explicitly set pressureOn
   const other=p===1?2:1;
   document.getElementById('buzz'+other).disabled=true;
   document.getElementById('buzz'+other).style.display='none';
@@ -748,19 +743,14 @@ function playerBuzz(p){
   document.getElementById('wait'+other).style.display='block';
   document.getElementById('wait'+other).textContent='⏳ '+(p===1?p1Name:p2Name)+' answering...';
   playBuzzSound();
+  // Bubble stays still while player thinks and answers
   showZone(p,'answering');
-  // Online: sync immediately with correct pressureOn
-  if(ol_mode && ol_role === 'host'){
-    ol_hostSync();
-    setTimeout(ol_hostSync, 100);
-    setTimeout(ol_hostSync, 300);
-  }
 }
 
 function submitAnswer(p,chosen,correct,grid){
-  if(grid) grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
+  grid.querySelectorAll('.ans-btn').forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add('correct');});
   const ok=chosen===correct;
-  if(!ok){ const wrongBtn=grid.querySelectorAll('.ans-btn')[chosen]; if(wrongBtn) wrongBtn.classList.add('wrong'); }
+  if(!ok)grid.querySelectorAll('.ans-btn')[chosen].classList.add('wrong');
   if(ok) playCorrectSound(); else playWrongSound();
   // Log for CrossBot
   gameLog.push({
@@ -781,7 +771,9 @@ function submitAnswer(p,chosen,correct,grid){
 }
 
 function processResult(p, ok) {
-  
+  // p = player who just answered (1 or 2)
+  // Positive tiltLevel = danger for P2, negative = danger for P1
+
   if (pressureOn === 0) {
     // ── STARTER QUESTION ─────────────────────────────────────
     // Buzzer winner answered:
@@ -792,7 +784,6 @@ function processResult(p, ok) {
     pressureOn = dangerPlayer;
     applyTiltLevel();
     startFlow();
-
   } else {
     // ── PRESSURE QUESTION ────────────────────────────────────
     // Player under pressure answers:
@@ -840,26 +831,15 @@ function applyTiltLevel() {
 // ── CONTINUOUS BUBBLE FLOW ──────────────────────────────────────
 // flowSpeed set by applyTiltLevel(). Loop runs every frame.
 
-let _flowInterval=null;
 function startFlow(){
-  if(_flowInterval) clearInterval(_flowInterval);
-  if(animId) cancelAnimationFrame(animId); animId=null;
-  lastTs=Date.now();
-  _flowInterval=setInterval(()=>{
-    const now=Date.now();
-    const dt=(now-lastTs)/1000;
-    lastTs=now;
-    if(flowSpeed===0) return;
-    bubbleX+=flowSpeed*dt;
-    if(bubbleX<=52){bubbleX=52;renderBubble(bubbleX,tilt);endGame(1);return;}
-    if(bubbleX>=448){bubbleX=448;renderBubble(bubbleX,tilt);endGame(2);return;}
-    renderBubble(bubbleX,tilt);
-  },16);
+  if(animId)cancelAnimationFrame(animId);
+  lastTs=null;
+  flowLoop();
 }
 
 function stopFlow(){
-  if(_flowInterval) clearInterval(_flowInterval); _flowInterval=null;
-  if(animId) cancelAnimationFrame(animId); animId=null;
+  if(animId)cancelAnimationFrame(animId);
+  animId=null;
   flowSpeed=0;
   tilt=0;
   renderBubble(bubbleX, 0);
@@ -895,7 +875,7 @@ function flowLoop(ts){
 function renderBubble(x,deg){
   document.getElementById('the-bubble').setAttribute('cx',x);
   document.getElementById('bshine').setAttribute('cx',x-6);
-  document.getElementById('bubble-svg').style.transform='rotate('+(-deg)+'deg)';
+  document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
   document.getElementById('the-bubble').setAttribute('fill',(x<115||x>385)?'url(#dangerG)':'url(#bubG)');
 }
 
@@ -1633,8 +1613,6 @@ function testSound(){
   }
 }
 
-
-
 // ═══════════════════════════════════════════════════════════════
 // ONLINE MULTIPLAYER - CLEAN REWRITE
 // HOST controls all logic, GUEST polls and mirrors
@@ -1901,6 +1879,7 @@ window.endGame=async function(w){
   _ol_origEnd(w);
 };
 
+
 window.addEventListener('load',()=>setLang('de'));
 </script>
 <!-- ═══ LEADERBOARD SCREEN ═══ -->
@@ -1960,7 +1939,6 @@ window.addEventListener('load',()=>setLang('de'));
 
   <button class="cb-close" onclick="closeCrossbot()">PLAY AGAIN →</button>
 </div>
-
 
 <div class="screen" id="lobby" style="align-items:center;justify-content:center;padding:2rem;gap:1.5rem;overflow-y:auto;">
   <div class="logo" style="font-size:2.2rem;">THE BUBBLE</div>
@@ -2022,5 +2000,4 @@ window.addEventListener('load',()=>setLang('de'));
     ← Zurück zum Party-Modus
   </button>
 </div>
-
 </body></html>
