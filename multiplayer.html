@@ -738,7 +738,7 @@ function buildAnswers(p,q){
   const grid=document.getElementById('answers'+p);
   grid.innerHTML=''; // always clear first
   // If guest and this is their zone, use guest version
-  if(ol_mode && ol_role==='guest' && p===2){ ol_guestBuildAnswers(q); return; }
+  if(ol_mode && ol_role==='guest' && p===2){ ol_buildGuestAnswers(q); return; }
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
@@ -1660,6 +1660,7 @@ let ol_pollTimer=null, ol_syncTimer=null, ol_eventTimer=null;
 let ol_lastEventId=null;
 let ol_guestPhase=null, ol_guestPressure=null, ol_guestQ=null;
 let ol_bubbleTarget=250;
+let ol_buzzSoundPlayed=false;
 
 function ol_show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1859,6 +1860,7 @@ function ol_applyState(state){
     document.getElementById('answers1').innerHTML='';
     document.getElementById('answers2').innerHTML='';
     if(phase==='buzzer'){
+      ol_buzzSoundPlayed=false;
       showZone(1,'buzzer'); showZone(2,'buzzer');
     } else if(phase==='answering'&&currentQ){
       playBuzzSound();
