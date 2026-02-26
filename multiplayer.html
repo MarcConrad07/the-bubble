@@ -885,7 +885,7 @@ function flowLoop(ts){
 function renderBubble(x,deg){
   document.getElementById('the-bubble').setAttribute('cx',x);
   document.getElementById('bshine').setAttribute('cx',x-6);
-  document.getElementById('bubble-svg').style.transform='rotate('+(ol_mode&&ol_role==="guest"?deg:-deg)+'deg)';
+  document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
   document.getElementById('the-bubble').setAttribute('fill',(x<115||x>385)?'url(#dangerG)':'url(#bubG)');
 }
 
@@ -1811,7 +1811,7 @@ function ol_applyState(state){
     ol_bubbleTarget=state.bubbleX;
     tiltLevel=state.tiltLevel||0;
     const deg=-(tiltLevel*5);
-    document.getElementById('bubble-svg').style.transform='rotate('+(ol_mode&&ol_role==="guest"?deg:-deg)+'deg)';
+    document.getElementById('bubble-svg').style.transform='rotate('+deg+'deg)';
   }
   round=state.round||round;
   // Question
