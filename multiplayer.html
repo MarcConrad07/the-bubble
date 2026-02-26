@@ -843,10 +843,7 @@ function applyTiltLevel() {
 function startFlow(){
   if(animId)cancelAnimationFrame(animId);
   lastTs=null;
-  animId=requestAnimationFrame(flowLoop);
-  // Show debug
-  const d=document.getElementById('ol-debug');
-  if(d) d.style.display='block', d.textContent='startFlow called! tilt:'+tiltLevel+' spd:'+flowSpeed;
+  flowLoop();
 }
 
 function stopFlow(){
@@ -858,8 +855,6 @@ function stopFlow(){
 }
 
 function flowLoop(ts){
-  const d=document.getElementById('ol-debug');
-  if(d&&ol_mode) d.textContent='spd:'+flowSpeed.toFixed(1)+' bx:'+Math.round(bubbleX)+' tilt:'+tiltLevel;
   if(!ts){animId=requestAnimationFrame(flowLoop);return;}
   if(lastTs && flowSpeed!==0){
     const dt=(ts-lastTs)/1000;
