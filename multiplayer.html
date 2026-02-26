@@ -856,6 +856,9 @@ function stopFlow(){
 }
 
 function flowLoop(ts){
+  // Debug: show bubbleX on screen
+  const dbg=document.getElementById('round-badge');
+  if(dbg&&ol_mode) dbg.textContent='bx:'+Math.round(bubbleX)+' spd:'+flowSpeed.toFixed(1);
   if(!ts){animId=requestAnimationFrame(flowLoop);return;}
   if(lastTs && flowSpeed!==0){
     const dt=(ts-lastTs)/1000;
