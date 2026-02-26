@@ -742,7 +742,7 @@ function buildAnswers(p,q){
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
-    btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
+    btn.setAttribute('tabindex','-1'); btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
     grid.appendChild(btn);
   });
 }
@@ -1897,6 +1897,9 @@ function ol_buildGuestAnswers(q){
     grid.appendChild(btn);
   });
   grid.style.display='grid';
+  // Remove focus from all buttons
+  grid.querySelectorAll('.ans-btn').forEach(b=>b.setAttribute('tabindex','-1'));
+  document.activeElement && document.activeElement.blur();
 }
 
 function ol_guestAnim(){
