@@ -848,10 +848,7 @@ function stopFlow(){
 
 function flowLoop(ts){
   if(!ts){animId=requestAnimationFrame(flowLoop);return;}
-  // Debug: show tick count in title
-  if(!window._fc) window._fc=0;
-  window._fc++;
-  if(window._fc%60===0) document.title='bx:'+Math.round(bubbleX)+' spd:'+flowSpeed.toFixed(1)+' fc:'+window._fc;
+
   if(lastTs && flowSpeed!==0){
     const dt=(ts-lastTs)/1000;
     bubbleX += flowSpeed*dt;
@@ -2005,4 +2002,5 @@ window.addEventListener('load',()=>setLang('de'));
     ← Zurück zum Party-Modus
   </button>
 </div>
+<div id="dbg" style="display:none;position:fixed;bottom:40%;left:0;right:0;text-align:center;color:lime;font-size:14px;font-family:monospace;z-index:9999;pointer-events:none;background:rgba(0,0,0,0.7);padding:4px;"></div>
 </body></html>
