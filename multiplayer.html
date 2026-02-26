@@ -833,7 +833,7 @@ function applyTiltLevel() {
 // flowSpeed set by applyTiltLevel(). Loop runs every frame.
 
 function startFlow(){
-  stopFlow();
+  if(animId){clearInterval(animId);cancelAnimationFrame(animId);animId=null;}
   lastTs=null;
   let _last=Date.now();
   animId=setInterval(function(){
