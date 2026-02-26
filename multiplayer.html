@@ -841,13 +841,22 @@ function applyTiltLevel() {
 // flowSpeed set by applyTiltLevel(). Loop runs every frame.
 
 function startFlow(){
-  if(animId)cancelAnimationFrame(animId);
-  lastTs=null;
-  flowLoop();
+  if(animId) clearInterval(animId);
+  lastTs=Date.now();
+  animId=setInterval(()=>{
+    const now=Date.now();
+    const dt=(now-lastTs)/1000;
+    lastTs=now;
+    if(flowSpeed===0) return;
+    bubbleX+=flowSpeed*dt;
+    if(bubbleX<=52){bubbleX=52;renderBubble(bubbleX,tilt);endGame(1);return;}
+    if(bubbleX>=448){bubbleX=448;renderBubble(bubbleX,tilt);endGame(2);return;}
+    renderBubble(bubbleX,tilt);
+  },16);
 }
 
 function stopFlow(){
-  if(animId)cancelAnimationFrame(animId);
+  if(animId) clearInterval(animId);
   animId=null;
   flowSpeed=0;
   tilt=0;
