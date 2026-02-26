@@ -840,18 +840,12 @@ function applyTiltLevel() {
 // ── CONTINUOUS BUBBLE FLOW ──────────────────────────────────────
 // flowSpeed set by applyTiltLevel(). Loop runs every frame.
 
-let _flowCount=0;
+let _flowInterval=null;
 function startFlow(){
-  if(animId) clearInterval(animId);
+  if(_flowInterval) clearInterval(_flowInterval);
+  if(animId) cancelAnimationFrame(animId); animId=null;
   lastTs=Date.now();
-  _flowCount=0;
-  animId=setInterval(()=>{
-    _flowCount++;
-    // Show proof of life every 30 ticks
-    if(_flowCount%30===0){
-      const d=document.getElementById('blabel1');
-      if(d) d.textContent='spd:'+flowSpeed.toFixed(1)+' bx:'+Math.round(bubbleX)+' #'+_flowCount;
-    }
+  _flowInterval=setInterval(()=>{
     const now=Date.now();
     const dt=(now-lastTs)/1000;
     lastTs=now;
@@ -864,8 +858,8 @@ function startFlow(){
 }
 
 function stopFlow(){
-  if(animId) clearInterval(animId);
-  animId=null;
+  if(_flowInterval) clearInterval(_flowInterval); _flowInterval=null;
+  if(animId) cancelAnimationFrame(animId); animId=null;
   flowSpeed=0;
   tilt=0;
   renderBubble(bubbleX, 0);
