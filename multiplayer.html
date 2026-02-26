@@ -1744,21 +1744,6 @@ function ol_startGame(){
     currentQ=pickQ();
     renderBubble(250,0);
     startBuzzerPhase();
-    // Intercept playerBuzz to sync immediately
-    const origBuzz=playerBuzz;
-    window.playerBuzz=function(p){
-      origBuzz(p);
-      setTimeout(ol_hostSync,30);
-      setTimeout(ol_hostSync,200);
-    };
-    // Intercept submitAnswer to sync after answer
-    const origSubmit=submitAnswer;
-    window.submitAnswer=function(p,c,correct,grid){
-      origSubmit(p,c,correct,grid);
-      setTimeout(ol_hostSync,30);
-      setTimeout(ol_hostSync,600);
-      setTimeout(ol_hostSync,1200);
-    };
     ol_syncTimer=setInterval(ol_hostSync,200);
     ol_eventTimer=setInterval(ol_checkGuestEvent,200);
     ol_hostSync();
