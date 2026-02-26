@@ -856,9 +856,6 @@ function stopFlow(){
 }
 
 function flowLoop(ts){
-  // Debug: show bubbleX on screen
-  const dbg=document.getElementById('round-badge');
-  if(dbg&&ol_mode) dbg.textContent='bx:'+Math.round(bubbleX)+' spd:'+flowSpeed.toFixed(1);
   if(!ts){animId=requestAnimationFrame(flowLoop);return;}
   if(lastTs && flowSpeed!==0){
     const dt=(ts-lastTs)/1000;
@@ -1796,10 +1793,14 @@ async function ol_checkGuestEvent(){
     if(!ev||ev.id===ol_lastEventId) return;
     ol_lastEventId=ev.id;
     await getSB().from('bubble_games').update({guest_event:null}).eq('code',ol_code);
-    if(ev.type==='buzz'&&phase==='buzzer') playerBuzz(2);
-    else if(ev.type==='answer'&&phase==='answering'&&pressureOn===2){
-      const grid=document.getElementById('answers2');
-      submitAnswer(2,parseInt(ev.chosen),currentQ.ans,grid);
+    if(ev.type==='buzz'&&phase==='buzzer'){
+      playerBuzz(2);
+    } else if(ev.type==='answer'&&phase==='answering'&&pressureOn===2){
+      const chosen=parseInt(ev.chosen);
+      const ok=chosen===currentQ.ans;
+      if(ok) playCorrectSound(); else playWrongSound();
+      showFeedback(ok);
+      setTimeout(()=>{ hideFeedback(); processResult(2,ok); ol_hostSync(); }, 1100);
     }
   }catch(e){}
 }
