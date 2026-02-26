@@ -781,9 +781,9 @@ function submitAnswer(p,chosen,correct,grid){
 }
 
 function processResult(p, ok) {
-  // p = player who just answered (1 or 2)
-  // Positive tiltLevel = danger for P2, negative = danger for P1
-
+  // DEBUG
+  document.getElementById('round-badge').textContent = 'PR:p'+p+' ok:'+ok+' press:'+pressureOn;
+  
   if (pressureOn === 0) {
     // ── STARTER QUESTION ─────────────────────────────────────
     // Buzzer winner answered:
