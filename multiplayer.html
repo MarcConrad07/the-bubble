@@ -794,6 +794,7 @@ function processResult(p, ok) {
     pressureOn = dangerPlayer;
     applyTiltLevel();
     startFlow();
+    document.getElementById('round-badge').textContent='tilt:'+tiltLevel+' spd:'+flowSpeed.toFixed(2)+' animId:'+animId;
   } else {
     // ── PRESSURE QUESTION ────────────────────────────────────
     // Player under pressure answers:
