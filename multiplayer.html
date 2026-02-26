@@ -833,17 +833,25 @@ function applyTiltLevel() {
 // flowSpeed set by applyTiltLevel(). Loop runs every frame.
 
 function startFlow(){
-  if(animId)cancelAnimationFrame(animId);
+  stopFlow();
   lastTs=null;
-  flowLoop();
+  let _last=Date.now();
+  animId=setInterval(function(){
+    if(flowSpeed===0){lastTs=Date.now();return;}
+    const now=Date.now(), dt=(now-_last)/1000;
+    _last=now;
+    bubbleX+=flowSpeed*dt;
+    if(bubbleX<=52){bubbleX=52;renderBubble(bubbleX,tilt);clearInterval(animId);animId=null;endGame(1);return;}
+    if(bubbleX>=448){bubbleX=448;renderBubble(bubbleX,tilt);clearInterval(animId);animId=null;endGame(2);return;}
+    renderBubble(bubbleX,tilt);
+  },33);
 }
 
 function stopFlow(){
-  if(animId)cancelAnimationFrame(animId);
-  animId=null;
+  if(animId){clearInterval(animId);cancelAnimationFrame(animId);animId=null;}
   flowSpeed=0;
   tilt=0;
-  renderBubble(bubbleX, 0);
+  renderBubble(bubbleX,0);
 }
 
 function flowLoop(ts){
@@ -2002,5 +2010,4 @@ window.addEventListener('load',()=>setLang('de'));
     ← Zurück zum Party-Modus
   </button>
 </div>
-<div id="dbg" style="display:none;position:fixed;bottom:40%;left:0;right:0;text-align:center;color:lime;font-size:14px;font-family:monospace;z-index:9999;pointer-events:none;background:rgba(0,0,0,0.7);padding:4px;"></div>
 </body></html>
