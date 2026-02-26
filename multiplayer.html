@@ -328,28 +328,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 <body>
 
 <div class="screen active" id="setup">
-  <div style="text-align:center">
+  <div style="text-align:center;margin-bottom:32px">
     <div class="logo">THE BUBBLE</div>
-    <div class="logo-sub">® Party Edition</div>
-  </div>
-  <div class="setup-card">
-    <h2 id="lbl-players">Players</h2>
-    <div class="player-inputs">
-      <div class="input-row">
-        <div class="input-label" id="lbl-p1">Player 1 (Bottom)</div>
-        <input class="game-input" id="name1" type="text" placeholder="Enter name..." maxlength="16">
-      </div>
-      <div class="vs-divider">VS</div>
-      <div class="input-row">
-        <div class="input-label" id="lbl-p2">Player 2 (Top)</div>
-        <input class="game-input" id="name2" type="text" placeholder="Enter name..." maxlength="16">
-      </div>
-    </div>
+    <div class="logo-sub">® Online Edition</div>
   </div>
   <button onclick="ol_open()"
-    style="font-family:'DM Sans',sans-serif;font-size:.9rem;
-    background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);
-    color:#ffb400;padding:10px 28px;border-radius:20px;cursor:pointer;
+    style="font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:600;
+    background:linear-gradient(135deg,rgba(255,180,0,0.15),rgba(255,140,0,0.1));
+    border:1px solid rgba(255,180,0,0.4);
+    color:#ffb400;padding:16px 28px;border-radius:20px;cursor:pointer;
     width:100%;max-width:400px;">
     🌐 Online gegen Freund spielen
   </button>
@@ -360,14 +347,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <button class="lang-btn active" onclick="setLang('en')">EN</button>
     <button class="lang-btn" onclick="setLang('de')">DE</button>
   </div>
-  <button class="btn-start" onclick="startGame()" id="btn-start">LET'S BUBBLE!</button>
-  <button onclick="openLeaderboard()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;background:none;border:none;color:var(--muted);cursor:pointer;letter-spacing:.05em;padding:4px 0;">🏆 Hall of Fame</button>
 </div>
 
 <div class="screen" id="game">
   <button id="music-toggle" onclick="toggleMusic()" style="position:absolute;top:8px;right:10px;z-index:10;background:rgba(0,180,255,0.15);border:1px solid rgba(0,212,255,0.4);color:#fff;border-radius:20px;padding:5px 14px;font-size:1rem;cursor:pointer;">🔊</button>
-  <div id="ol-debug" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;font-family:monospace;padding:4px 8px;"></div>
-<div class="zone p2" id="zone-p2">
+  <div class="zone p2" id="zone-p2">
     <div class="player-header">
       <div class="player-name" id="gname2" style="color:#ff6b6b">PLAYER 2</div>
       <div class="score-badge" id="score2">0</div>
@@ -742,7 +726,7 @@ function buildAnswers(p,q){
   q.opts.forEach((opt,i)=>{
     const btn=document.createElement('button');btn.className='ans-btn';
     btn.textContent=['A','B','C','D'][i]+'. '+opt;
-    btn.setAttribute('tabindex','-1'); btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
+    btn.onclick=()=>{btn.blur();submitAnswer(p,i,q.ans,grid);};
     grid.appendChild(btn);
   });
 }
@@ -750,7 +734,7 @@ function buildAnswers(p,q){
 function playerBuzz(p){
   // Online guest: send buzz event to host instead of running locally
   if(ol_mode && ol_role === 'guest'){
-    if(p === 2) ol_guestSendEvent({type:'buzz'});
+    if(p === 2) ol_guestSend({type:'buzz',id:Date.now()});
     return;
   }
   if(phase!=='buzzer')return;
@@ -1834,9 +1818,7 @@ async function ol_guestPoll(){
 
 function ol_applyState(state){
   if(!state) return;
-  // Debug display
-  const dbg=document.getElementById('ol-debug');
-  if(dbg){ dbg.style.display='block'; dbg.textContent='role:'+ol_role+' phase:'+state.phase+' pressure:'+state.pressureOn+' bx:'+Math.round(state.bubbleX)+'→'+Math.round(ol_bubbleTarget)+' q:'+(state.q?state.q.q.substring(0,20):'null'); }
+
   // Bubble target
   if(state.bubbleX!==undefined){
     ol_bubbleTarget=state.bubbleX;
@@ -1897,9 +1879,6 @@ function ol_buildGuestAnswers(q){
     grid.appendChild(btn);
   });
   grid.style.display='grid';
-  // Remove focus from all buttons
-  grid.querySelectorAll('.ans-btn').forEach(b=>b.setAttribute('tabindex','-1'));
-  document.activeElement && document.activeElement.blur();
 }
 
 function ol_guestAnim(){
