@@ -843,7 +843,10 @@ function applyTiltLevel() {
 function startFlow(){
   if(animId)cancelAnimationFrame(animId);
   lastTs=null;
-  flowLoop();
+  animId=requestAnimationFrame(flowLoop);
+  // Show debug
+  const d=document.getElementById('ol-debug');
+  if(d) d.style.display='block', d.textContent='startFlow called! tilt:'+tiltLevel+' spd:'+flowSpeed;
 }
 
 function stopFlow(){
