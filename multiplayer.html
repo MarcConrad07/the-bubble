@@ -781,8 +781,6 @@ function submitAnswer(p,chosen,correct,grid){
 }
 
 function processResult(p, ok) {
-  // DEBUG
-  document.getElementById('round-badge').textContent = 'PR:p'+p+' ok:'+ok+' press:'+pressureOn;
   
   if (pressureOn === 0) {
     // ── STARTER QUESTION ─────────────────────────────────────
@@ -794,7 +792,7 @@ function processResult(p, ok) {
     pressureOn = dangerPlayer;
     applyTiltLevel();
     startFlow();
-    document.getElementById('round-badge').textContent='tilt:'+tiltLevel+' spd:'+flowSpeed.toFixed(2)+' animId:'+animId;
+
   } else {
     // ── PRESSURE QUESTION ────────────────────────────────────
     // Player under pressure answers:
@@ -857,6 +855,8 @@ function stopFlow(){
 }
 
 function flowLoop(ts){
+  const d=document.getElementById('ol-debug');
+  if(d&&ol_mode) d.textContent='spd:'+flowSpeed.toFixed(1)+' bx:'+Math.round(bubbleX)+' tilt:'+tiltLevel;
   if(!ts){animId=requestAnimationFrame(flowLoop);return;}
   if(lastTs && flowSpeed!==0){
     const dt=(ts-lastTs)/1000;
